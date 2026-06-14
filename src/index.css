@@ -1,0 +1,136 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Theme Variables ── */
+:root {
+  --bg-page:        #FFFFFF;
+  --bg-deep:        #F8FAFC;
+  --bg-s1:          #F1F5F9;
+  --card-bg:        #FFFFFF;
+  --card-border:    rgba(0,0,0,0.07);
+  --text-h:         #0F172A;
+  --text-body:      #1E293B;
+  --text-muted:     #64748B;
+  --text-xmuted:    #94A3B8;
+  --divider:        rgba(0,0,0,0.06);
+  --nav-bg:         rgba(255,255,255,0.96);
+  --nav-border:     rgba(0,0,0,0.07);
+  --header-from:    #065F46;
+  --header-to:      #059669;
+  --pattern-opacity: 0.055;
+  --outer-bg:       #CBD5E1;
+  --next-card-bg:   rgba(16,185,129,0.08);
+  --next-card-border: rgba(16,185,129,0.2);
+}
+
+html[data-theme="dark"] {
+  --bg-page:        #0A1628;
+  --bg-deep:        #060E1A;
+  --bg-s1:          #0F1E35;
+  --card-bg:        rgba(255,255,255,0.05);
+  --card-border:    rgba(255,255,255,0.08);
+  --text-h:         #F8FAFC;
+  --text-body:      rgba(248,250,252,0.85);
+  --text-muted:     rgba(248,250,252,0.5);
+  --text-xmuted:    rgba(248,250,252,0.28);
+  --divider:        rgba(255,255,255,0.07);
+  --nav-bg:         rgba(10,22,40,0.95);
+  --nav-border:     rgba(255,255,255,0.07);
+  --header-from:    #060E1A;
+  --header-to:      #0A1628;
+  --pattern-opacity: 0.09;
+  --outer-bg:       #020810;
+  --next-card-bg:   rgba(16,185,129,0.1);
+  --next-card-border: rgba(16,185,129,0.25);
+}
+
+/* ── Global theme transition ── */
+*, *::before, *::after {
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+}
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+    overflow: hidden;
+  }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    background: var(--outer-bg);
+    overscroll-behavior: none;
+  }
+}
+
+@layer utilities {
+  .safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  .pb-nav {
+    padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+  }
+  .scroll-hidden {
+    scrollbar-width: none;
+  }
+  .scroll-hidden::-webkit-scrollbar {
+    display: none;
+  }
+  .glass {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+    border: 1px solid var(--card-border);
+  }
+  .glass-emerald {
+    background: var(--next-card-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--next-card-border);
+  }
+}
+
+/* ── Page entrance animation ── */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.page-enter {
+  animation: slideUp 0.24s ease forwards;
+}
+
+/* ── Prayer item entrance (staggered) ── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.prayer-item {
+  animation: fadeIn 0.3s ease both;
+}
+.prayer-item:nth-child(1) { animation-delay: 0.05s; }
+.prayer-item:nth-child(2) { animation-delay: 0.10s; }
+.prayer-item:nth-child(3) { animation-delay: 0.15s; }
+.prayer-item:nth-child(4) { animation-delay: 0.20s; }
+.prayer-item:nth-child(5) { animation-delay: 0.25s; }
+
+/* ── Checkbox tap animation ── */
+@keyframes checkPop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.22); }
+  100% { transform: scale(1); }
+}
+.check-pop { animation: checkPop 0.22s ease; }
+
+/* ── Countdown ring glow pulse ── */
+@keyframes ring-pulse {
+  0%, 100% { filter: drop-shadow(0 0 6px rgba(16,185,129,0.6)); }
+  50%       { filter: drop-shadow(0 0 14px rgba(16,185,129,0.9)); }
+}
+.ring-glow { animation: ring-pulse 2.5s ease-in-out infinite; }
+
+/* ── Gold number glow ── */
+@keyframes gold-pulse {
+  0%, 100% { text-shadow: 0 0 8px rgba(245,158,11,0.4); }
+  50%       { text-shadow: 0 0 20px rgba(245,158,11,0.7); }
+}
+.gold-glow { animation: gold-pulse 2s ease-in-out infinite; }

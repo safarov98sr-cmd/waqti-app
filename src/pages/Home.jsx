@@ -267,7 +267,7 @@ export default function Home() {
       )}
 
       {/* ── Body ── */}
-      <div className="px-4 space-y-5 pb-4">
+      <div className="px-4 space-y-5 pb-28">
 
         {/* Prayers list */}
         <section>

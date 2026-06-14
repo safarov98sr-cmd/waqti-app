@@ -1,90 +1,104 @@
 import { useState, useRef } from 'react'
 import { useTasks } from '../hooks/useTasks'
+import IslamicPattern from '../components/IslamicPattern'
 
 const PRIORITIES = [
-  { id: 'high',   label: 'Высокий', color: '#EF4444', bg: '#FEE2E2' },
-  { id: 'medium', label: 'Средний', color: '#EF9F27', bg: '#FFF8ED' },
-  { id: 'low',    label: 'Низкий',  color: '#0F6E56', bg: '#E1F5EE' },
+  { id: 'high',   label: 'Высокий', color: '#EF4444', bg: 'rgba(239,68,68,0.1)'   },
+  { id: 'medium', label: 'Средний', color: '#F59E0B', bg: 'rgba(245,158,11,0.1)'  },
+  { id: 'low',    label: 'Низкий',  color: '#10B981', bg: 'rgba(16,185,129,0.1)'  },
+]
+
+const PRAYER_BLOCKS = [
+  { id: 'fajr_dhuhr',   label: 'Фаджр — Зухр',  short: 'Ф—З', icon: '🌙' },
+  { id: 'dhuhr_asr',    label: 'Зухр — Аср',     short: 'З—А', icon: '☀️' },
+  { id: 'asr_maghrib',  label: 'Аср — Магриб',   short: 'А—М', icon: '🌤️' },
+  { id: 'maghrib_isha', label: 'Магриб — Иша',   short: 'М—И', icon: '🌅' },
 ]
 
 const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 }
 
-function priorityMeta(id) {
-  return PRIORITIES.find(p => p.id === id) ?? PRIORITIES[1]
-}
+function pMeta(id) { return PRIORITIES.find(p => p.id === id) ?? PRIORITIES[1] }
+function bMeta(id) { return PRAYER_BLOCKS.find(b => b.id === id) ?? null }
 
-function TaskItem({ task, onToggle, onMove, onDelete }) {
-  const [showActions, setShowActions] = useState(false)
-  const p = priorityMeta(task.priority)
+/* ── Single task card ── */
+function TaskCard({ task, onToggle, onMove, onDelete }) {
+  const [open, setOpen] = useState(false)
+  const p = pMeta(task.priority)
+  const b = bMeta(task.prayerBlock)
 
   return (
-    <div
-      className={`bg-white rounded-2xl border transition-all ${
-        task.done ? 'border-gray-100 opacity-60' : 'border-gray-200 shadow-sm'
-      }`}
-    >
+    <div className="rounded-2xl overflow-hidden transition-all duration-200"
+      style={{
+        background: 'var(--card-bg)',
+        border: `1.5px solid ${task.done ? 'var(--card-border)' : 'var(--card-border)'}`,
+        boxShadow: task.done ? 'none' : '0 1px 8px rgba(0,0,0,0.04)',
+        opacity: task.done ? 0.65 : 1,
+      }}>
+
+      {/* Main row */}
       <div className="flex items-center gap-3 px-4 py-3.5">
         {/* Checkbox */}
         <button
           onClick={() => onToggle(task.id)}
-          className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all active:scale-90 ${
-            task.done ? 'bg-primary border-primary' : 'border-gray-300 hover:border-primary'
-          }`}
-        >
+          className="flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 active:scale-90"
+          style={{
+            background: task.done ? '#10B981' : 'transparent',
+            borderColor: task.done ? '#10B981' : 'var(--card-border)',
+          }}>
           {task.done && (
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+              <path d="M2 5.5l2.5 2.5 4.5-4.5" stroke="white" strokeWidth="2"
+                strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           )}
         </button>
 
-        {/* Text */}
-        <div className="flex-1 min-w-0">
-          <p className={`text-sm font-medium truncate ${task.done ? 'line-through text-gray-400' : 'text-gray-800'}`}>
+        {/* Title + block label */}
+        <div className="flex-1 min-w-0" onClick={() => setOpen(o => !o)}>
+          <p className="text-sm font-medium truncate"
+            style={{
+              color: task.done ? 'var(--text-xmuted)' : 'var(--text-h)',
+              textDecoration: task.done ? 'line-through' : 'none',
+            }}>
             {task.title}
           </p>
+          {b && (
+            <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-xmuted)' }}>
+              {b.icon} {b.label}
+            </p>
+          )}
         </div>
 
         {/* Priority dot */}
-        <span
-          className="flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full"
-          style={{ color: p.color, background: p.bg }}
-        >
-          {p.label}
-        </span>
+        <span className="flex-shrink-0 w-2 h-2 rounded-full"
+          style={{ background: p.color }} />
 
-        {/* More button */}
+        {/* Delete */}
         <button
-          onClick={() => setShowActions(s => !s)}
-          className="flex-shrink-0 w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <circle cx="8" cy="3" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="8" cy="13" r="1.5"/>
+          onClick={() => onDelete(task.id)}
+          className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-xl transition-all active:scale-90"
+          style={{ color: 'var(--text-xmuted)' }}
+          onMouseEnter={e => e.currentTarget.style.color = '#EF4444'}
+          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-xmuted)'}>
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+            <path d="M2 3.5h11M6 3.5V2.5h3v1M5.5 3.5l.5 8M9.5 3.5l-.5 8"
+              stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
           </svg>
         </button>
       </div>
 
-      {/* Actions */}
-      {showActions && (
-        <div className="flex border-t border-gray-100">
+      {/* Expanded actions */}
+      {open && (
+        <div className="flex border-t" style={{ borderColor: 'var(--card-border)' }}>
           <button
-            onClick={() => { onMove(task.id); setShowActions(false) }}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold text-gold hover:bg-gold-lt transition-colors rounded-bl-2xl"
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+            onClick={() => { onMove(task.id); setOpen(false) }}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold transition-colors"
+            style={{ color: '#F59E0B' }}>
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+              <path d="M2 6.5h9M8 3l3.5 3.5L8 10" stroke="currentColor"
+                strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             На завтра
-          </button>
-          <div className="w-px bg-gray-100"/>
-          <button
-            onClick={() => { onDelete(task.id); setShowActions(false) }}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold text-danger hover:bg-red-50 transition-colors rounded-br-2xl"
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M2 3.5h10M5.5 3.5V2.5h3v1M5 3.5l.5 8M9 3.5l-.5 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-            </svg>
-            Удалить
           </button>
         </div>
       )}
@@ -92,147 +106,210 @@ function TaskItem({ task, onToggle, onMove, onDelete }) {
   )
 }
 
+/* ── Prayer block section ── */
+function BlockSection({ block, tasks, onToggle, onMove, onDelete }) {
+  const pending = tasks.filter(t => !t.done)
+  const done    = tasks.filter(t => t.done)
+
+  return (
+    <section>
+      <div className="flex items-center gap-2 mb-2.5">
+        <span className="text-base leading-none">{block?.icon ?? '📋'}</span>
+        <span className="text-xs font-bold uppercase tracking-wider"
+          style={{ color: 'var(--text-xmuted)' }}>
+          {block?.label ?? 'Без блока'}
+        </span>
+        <span className="text-xs font-semibold ml-auto" style={{ color: '#10B981' }}>
+          {done.length}/{tasks.length}
+        </span>
+      </div>
+      <div className="space-y-2">
+        {[...pending, ...done].map(task => (
+          <TaskCard
+            key={task.id}
+            task={task}
+            onToggle={onToggle}
+            onMove={onMove}
+            onDelete={onDelete}
+          />
+        ))}
+      </div>
+    </section>
+  )
+}
+
+/* ── Main screen ── */
 export default function Tasks() {
   const { tasks, loading, addTask, toggleDone, moveToTomorrow, deleteTask, stats } = useTasks()
-  const [input,    setInput]    = useState('')
-  const [priority, setPriority] = useState('medium')
-  const [adding,   setAdding]   = useState(false)
+  const [input,       setInput]       = useState('')
+  const [priority,    setPriority]    = useState('medium')
+  const [prayerBlock, setPrayerBlock] = useState(null)
+  const [adding,      setAdding]      = useState(false)
   const inputRef = useRef(null)
+
+  const now     = new Date()
+  const dateStr = `${now.getDate()} ${['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'][now.getMonth()]}`
 
   const handleAdd = async () => {
     if (!input.trim()) return
     setAdding(true)
-    await addTask(input, priority)
+    await addTask(input.trim(), priority, prayerBlock)
     setInput('')
     setAdding(false)
     inputRef.current?.focus()
   }
 
-  const sorted = [...tasks].sort(
-    (a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]
-  )
-  const pending = sorted.filter(t => !t.done)
-  const done    = sorted.filter(t => t.done)
+  // Group tasks by prayer block
+  const grouped = PRAYER_BLOCKS.map(b => ({
+    block: b,
+    tasks: tasks.filter(t => t.prayerBlock === b.id)
+      .sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]),
+  })).filter(g => g.tasks.length > 0)
 
-  const now = new Date()
-  const dateStr = `${now.getDate()} ${['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'][now.getMonth()]}`
+  const unassigned = tasks
+    .filter(t => !t.prayerBlock)
+    .sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority])
+
+  const isEmpty = !loading && tasks.length === 0
 
   return (
-    <div className="page-enter min-h-full">
-      {/* Header */}
-      <div className="px-4 pt-12 pb-5" style={{ background: 'linear-gradient(160deg,#085041,#0F6E56)' }}>
-        <p className="text-white/60 text-sm mb-0.5">{dateStr}</p>
-        <div className="flex items-center justify-between">
-          <h1 className="text-white text-xl font-bold">Задачи</h1>
+    <div className="page-enter min-h-full" style={{ background: 'var(--bg-page)' }}>
+
+      {/* ── Header ── */}
+      <div className="relative overflow-hidden pt-12 pb-8 px-5"
+        style={{ background: 'linear-gradient(160deg, var(--header-from) 0%, var(--header-to) 100%)' }}>
+        <IslamicPattern />
+        <div className="relative z-10 flex items-end justify-between">
+          <div>
+            <p className="text-xs font-medium mb-0.5" style={{ color: 'rgba(255,255,255,0.55)' }}>
+              {dateStr}
+            </p>
+            <h1 className="text-2xl font-black text-white">Планировщик</h1>
+          </div>
           {tasks.length > 0 && (
-            <span className="text-white/70 text-sm bg-white/15 px-3 py-1 rounded-full font-semibold">
+            <span className="text-sm font-bold px-3 py-1.5 rounded-full mb-0.5"
+              style={{ background: 'rgba(255,255,255,0.15)', color: 'white' }}>
               {stats.done}/{stats.total} · {stats.pct}%
             </span>
           )}
         </div>
       </div>
 
-      <div className="px-4 py-4 space-y-4">
-        {/* Add task form */}
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="flex items-center gap-2 px-4 pt-3.5 pb-2">
+      <div className="px-4 py-4 space-y-5 pb-28">
+
+        {/* ── Add task form ── */}
+        <div className="glass rounded-3xl overflow-hidden">
+          {/* Input */}
+          <div className="flex items-center gap-2 px-4 pt-4 pb-2">
             <input
               ref={inputRef}
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleAdd()}
               placeholder="Добавить задачу..."
-              className="flex-1 text-sm outline-none text-gray-800 placeholder-gray-400 bg-transparent"
+              className="flex-1 text-sm outline-none bg-transparent"
+              style={{ color: 'var(--text-h)', '::placeholder': { color: 'var(--text-xmuted)' } }}
             />
             <button
               onClick={handleAdd}
               disabled={!input.trim() || adding}
-              className="flex-shrink-0 w-8 h-8 rounded-xl bg-primary flex items-center justify-center disabled:opacity-40 transition-all active:scale-90"
-            >
+              className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-90 disabled:opacity-40"
+              style={{ background: '#10B981' }}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                 <path d="M8 3v10M3 8h10" stroke="white" strokeWidth="2" strokeLinecap="round"/>
               </svg>
             </button>
           </div>
 
-          {/* Priority selector */}
-          <div className="flex gap-1.5 px-4 pb-3">
+          {/* Priority chips */}
+          <div className="flex gap-1.5 px-4 pb-2">
             {PRIORITIES.map(p => (
               <button
                 key={p.id}
                 onClick={() => setPriority(p.id)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-                style={
-                  priority === p.id
-                    ? { background: p.bg, color: p.color, border: `1.5px solid ${p.color}40` }
-                    : { background: '#F9FAFB', color: '#9CA3AF', border: '1.5px solid transparent' }
-                }
-              >
-                <span
-                  className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                  style={{ background: priority === p.id ? p.color : '#D1D5DB' }}
-                />
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                style={priority === p.id
+                  ? { background: p.bg, color: p.color, border: `1.5px solid ${p.color}40` }
+                  : { background: 'var(--bg-s1)', color: 'var(--text-xmuted)', border: '1.5px solid transparent' }
+                }>
+                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                  style={{ background: priority === p.id ? p.color : 'var(--text-xmuted)' }} />
                 {p.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Prayer block chips */}
+          <div className="flex gap-1.5 px-4 pb-4 overflow-x-auto scroll-hidden">
+            <button
+              onClick={() => setPrayerBlock(null)}
+              className="flex-shrink-0 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all"
+              style={prayerBlock === null
+                ? { background: 'rgba(16,185,129,0.1)', color: '#10B981', border: '1.5px solid rgba(16,185,129,0.3)' }
+                : { background: 'var(--bg-s1)', color: 'var(--text-xmuted)', border: '1.5px solid transparent' }
+              }>
+              Без блока
+            </button>
+            {PRAYER_BLOCKS.map(b => (
+              <button
+                key={b.id}
+                onClick={() => setPrayerBlock(b.id)}
+                className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                style={prayerBlock === b.id
+                  ? { background: 'rgba(16,185,129,0.1)', color: '#10B981', border: '1.5px solid rgba(16,185,129,0.3)' }
+                  : { background: 'var(--bg-s1)', color: 'var(--text-xmuted)', border: '1.5px solid transparent' }
+                }>
+                <span>{b.icon}</span>
+                <span>{b.short}</span>
               </button>
             ))}
           </div>
         </div>
 
-        {/* Loading */}
+        {/* ── Loading skeletons ── */}
         {loading && (
           <div className="space-y-2">
-            {[1,2,3].map(i => <div key={i} className="h-14 bg-gray-200 rounded-2xl animate-pulse"/>)}
+            {[1,2,3].map(i => (
+              <div key={i} className="h-14 rounded-2xl animate-pulse" style={{ background: 'var(--bg-s1)' }} />
+            ))}
           </div>
         )}
 
-        {/* Empty state */}
-        {!loading && tasks.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-4xl mb-3">✅</p>
-            <p className="text-gray-500 font-medium">Нет задач на сегодня</p>
-            <p className="text-gray-400 text-sm mt-1">Добавь первую задачу выше</p>
+        {/* ── Empty state ── */}
+        {isEmpty && (
+          <div className="text-center py-14">
+            <div className="w-16 h-16 rounded-3xl flex items-center justify-center text-3xl mx-auto mb-4"
+              style={{ background: 'var(--bg-s1)' }}>
+              ✅
+            </div>
+            <p className="font-semibold" style={{ color: 'var(--text-h)' }}>Нет задач на сегодня</p>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-xmuted)' }}>Добавь первую задачу выше</p>
           </div>
         )}
 
-        {/* Pending tasks */}
-        {pending.length > 0 && (
-          <section>
-            <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">
-              К выполнению · {pending.length}
-            </h2>
-            <div className="space-y-2">
-              {pending.map(task => (
-                <TaskItem
-                  key={task.id}
-                  task={task}
-                  onToggle={toggleDone}
-                  onMove={moveToTomorrow}
-                  onDelete={deleteTask}
-                />
-              ))}
-            </div>
-          </section>
+        {/* ── Prayer block groups ── */}
+        {!loading && grouped.map(g => (
+          <BlockSection
+            key={g.block.id}
+            block={g.block}
+            tasks={g.tasks}
+            onToggle={toggleDone}
+            onMove={moveToTomorrow}
+            onDelete={deleteTask}
+          />
+        ))}
+
+        {/* ── Unassigned tasks ── */}
+        {!loading && unassigned.length > 0 && (
+          <BlockSection
+            block={null}
+            tasks={unassigned}
+            onToggle={toggleDone}
+            onMove={moveToTomorrow}
+            onDelete={deleteTask}
+          />
         )}
 
-        {/* Done tasks */}
-        {done.length > 0 && (
-          <section>
-            <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">
-              Выполнено · {done.length}
-            </h2>
-            <div className="space-y-2">
-              {done.map(task => (
-                <TaskItem
-                  key={task.id}
-                  task={task}
-                  onToggle={toggleDone}
-                  onMove={moveToTomorrow}
-                  onDelete={deleteTask}
-                />
-              ))}
-            </div>
-          </section>
-        )}
       </div>
     </div>
   )

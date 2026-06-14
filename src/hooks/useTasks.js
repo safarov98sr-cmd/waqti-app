@@ -38,13 +38,14 @@ export function useTasks(date = today()) {
   }, [date, deviceId])
 
   // Add
-  const addTask = useCallback(async (title, priority = 'medium') => {
+  const addTask = useCallback(async (title, priority = 'medium', prayerBlock = null) => {
     if (!title.trim()) return
     const task = {
       id: crypto.randomUUID(),
       device_id: deviceId,
       title: title.trim(),
       priority,
+      prayerBlock,
       done: false,
       date,
       created_at: new Date().toISOString(),

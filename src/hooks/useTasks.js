@@ -64,7 +64,11 @@ export function useTasks(date = today()) {
   // Toggle done
   const toggleDone = useCallback(async (id) => {
     setTasks(prev => {
-      const u = prev.map(t => t.id === id ? { ...t, done: !t.done } : t)
+      const u = prev.map(t => {
+        if (t.id !== id) return t
+        const nowDone = !t.done
+        return { ...t, done: nowDone, done_at: nowDone ? new Date().toISOString() : undefined }
+      })
       lsSave(date, u)
       return u
     })
@@ -78,16 +82,14 @@ export function useTasks(date = today()) {
   const moveToTomorrow = useCallback(async (id) => {
     const task = tasks.find(t => t.id === id)
     if (!task) return
-    // Optimistically remove from today
     setTasks(prev => {
       const u = prev.filter(t => t.id !== id)
       lsSave(date, u)
       return u
     })
-    // Add to tomorrow in localStorage
     const tmr = tomorrow()
     const tmrTasks = lsLoad(tmr)
-    lsSave(tmr, [...tmrTasks, { ...task, date: tmr, done: false }])
+    lsSave(tmr, [...tmrTasks, { ...task, date: tmr, done: false, moved_at: new Date().toISOString() }])
     if (supabase) {
       await supabase.from('tasks').update({ date: tmr, done: false }).eq('id', id)
     }

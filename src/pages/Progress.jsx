@@ -4,103 +4,195 @@ import IslamicPattern   from '../components/IslamicPattern'
 
 const MONTHS = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек']
 
-/* ── SVG completion ring ── */
-function Ring({ pct, size = 120, stroke = 9 }) {
+/* ── Mini SVG ring ── */
+function Ring({ pct, size = 96, stroke = 8, color = '#10B981' }) {
   const r    = (size - stroke) / 2
   const circ = 2 * Math.PI * r
-  const offset = circ * (1 - pct / 100)
-  const color  = pct >= 75 ? '#10B981' : pct >= 40 ? '#F59E0B' : '#EF4444'
+  const offset = circ * (1 - Math.min(pct, 100) / 100)
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}
-      style={{ transform: 'rotate(-90deg)' }}>
+      style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
       <circle cx={size/2} cy={size/2} r={r} fill="none"
         stroke="var(--bg-s1)" strokeWidth={stroke} />
       <circle cx={size/2} cy={size/2} r={r} fill="none"
         stroke={color} strokeWidth={stroke}
         strokeDasharray={circ} strokeDashoffset={offset}
         strokeLinecap="round"
-        style={{ transition: 'stroke-dashoffset 0.7s ease' }} />
+        style={{ transition: 'stroke-dashoffset 0.6s ease' }} />
     </svg>
   )
 }
 
-/* ── 7-day bar chart ── */
-function WeekChart({ bars }) {
+/* ── Today dual stat cards ── */
+function TodayStats({ todayPrayers, todayTasks }) {
+  const prayerPct = Math.round(todayPrayers / 5 * 100)
+  const taskPct   = todayTasks.total > 0
+    ? Math.round(todayTasks.done / todayTasks.total * 100)
+    : 0
+  const taskColor = taskPct >= 75 ? '#10B981' : taskPct >= 40 ? '#F59E0B' : '#EF4444'
+
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      {/* Prayer card */}
+      <div className="glass rounded-3xl p-4 flex flex-col items-center gap-2">
+        <p className="text-[10px] font-bold uppercase tracking-wider self-start"
+          style={{ color: 'var(--text-xmuted)' }}>Намазы</p>
+        <div className="relative">
+          <Ring pct={prayerPct} color="#10B981" />
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-lg font-black leading-none" style={{ color: 'var(--text-h)' }}>
+              {todayPrayers}/5
+            </span>
+            <span className="text-[9px]" style={{ color: 'var(--text-xmuted)' }}>{prayerPct}%</span>
+          </div>
+        </div>
+        <p className="text-xs font-semibold text-center"
+          style={{ color: todayPrayers === 5 ? '#10B981' : todayPrayers >= 3 ? '#F59E0B' : 'var(--text-muted)' }}>
+          {todayPrayers === 5 ? 'Маша Аллах! 🌟' : todayPrayers >= 3 ? 'Хорошо! 💪' : 'Не забудь намаз'}
+        </p>
+      </div>
+
+      {/* Tasks card */}
+      <div className="glass rounded-3xl p-4 flex flex-col items-center gap-2">
+        <p className="text-[10px] font-bold uppercase tracking-wider self-start"
+          style={{ color: 'var(--text-xmuted)' }}>Задачи</p>
+        <div className="relative">
+          <Ring pct={taskPct} color={taskColor} />
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-lg font-black leading-none" style={{ color: 'var(--text-h)' }}>
+              {todayTasks.done}/{todayTasks.total || '—'}
+            </span>
+            <span className="text-[9px]" style={{ color: 'var(--text-xmuted)' }}>
+              {todayTasks.total > 0 ? `${taskPct}%` : '—'}
+            </span>
+          </div>
+        </div>
+        <p className="text-xs font-semibold text-center"
+          style={{ color: taskPct === 100 ? '#10B981' : taskPct >= 50 ? '#F59E0B' : 'var(--text-muted)' }}>
+          {taskPct === 100 ? 'Всё сделано! 🎯' : todayTasks.total === 0 ? 'Добавь задачи' : `${todayTasks.total - todayTasks.done} осталось`}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+/* ── 7-day prayer calendar ── */
+function PrayerCalendar({ calendar, streak }) {
+  return (
+    <div className="glass rounded-3xl p-5">
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-xmuted)' }}>
+          Намазы за 7 дней
+        </p>
+        {streak >= 2 && (
+          <span className="text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1"
+            style={{ background: 'rgba(16,185,129,0.1)', color: '#10B981' }}>
+            🔥 {streak} {streak < 5 ? 'дня' : 'дней'}
+          </span>
+        )}
+      </div>
+
+      {/* Bars */}
+      <div className="flex items-end justify-between gap-1.5" style={{ height: 80 }}>
+        {calendar.map((d, i) => {
+          const pct     = (d.done / 5) * 100
+          const barColor = d.done === 5
+            ? '#10B981'
+            : d.done >= 3
+            ? '#F59E0B'
+            : d.done >= 1
+            ? 'rgba(245,158,11,0.45)'
+            : 'var(--bg-s1)'
+          return (
+            <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
+              <div className="w-full flex flex-col justify-end" style={{ height: 52 }}>
+                <div className="w-full rounded-t-lg transition-all duration-700"
+                  style={{ height: `${Math.max(pct, 5)}%`, background: barColor, minHeight: 4 }} />
+              </div>
+              <span className="text-[10px] font-bold"
+                style={{ color: d.isToday ? '#10B981' : 'var(--text-xmuted)' }}>
+                {d.label}
+              </span>
+              <span className="text-[9px]" style={{ color: 'var(--text-xmuted)' }}>
+                {d.done}/5
+              </span>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+/* ── Task week bars ── */
+function TaskWeekChart({ bars, trendDelta, avg7 }) {
   const max = Math.max(...bars.map(b => b.pct), 1)
   return (
-    <div className="flex items-end justify-between gap-1.5" style={{ height: 88 }}>
-      {bars.map((b, i) => {
-        const barColor = b.isToday
-          ? (b.pct >= 75 ? '#10B981' : b.pct >= 40 ? '#F59E0B' : b.pct > 0 ? '#EF4444' : 'var(--bg-s1)')
-          : b.hasData
-          ? 'rgba(16,185,129,0.3)'
-          : 'var(--bg-s1)'
-        return (
-          <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
-            <div className="w-full flex flex-col justify-end" style={{ height: 64 }}>
-              <div className="w-full rounded-t-lg transition-all duration-700"
-                style={{ height: `${Math.max((b.pct / max) * 100, 4)}%`, background: barColor, minHeight: 4 }} />
-            </div>
-            <span className="text-[10px] font-semibold"
-              style={{ color: b.isToday ? '#10B981' : 'var(--text-xmuted)' }}>
-              {b.label}
-            </span>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-/* ── Prayer dots grid ── */
-const PRAYERS = [
-  { key: 'Fajr',    icon: '🌙', label: 'Фаджр' },
-  { key: 'Dhuhr',   icon: '☀️', label: 'Зухр'  },
-  { key: 'Asr',     icon: '🌤️', label: 'Аср'   },
-  { key: 'Maghrib', icon: '🌅', label: 'Магриб' },
-  { key: 'Isha',    icon: '⭐', label: 'Иша'   },
-]
-
-function PrayerGrid() {
-  const today = new Date().toISOString().split('T')[0]
-  let done = {}
-  try { done = JSON.parse(localStorage.getItem(`pd_${today}`) ?? '{}') } catch {}
-  const doneCount = PRAYERS.filter(p => done[p.key]).length
-
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-xmuted)' }}>
-          Намазы сегодня
-        </span>
-        <span className="text-xs font-bold" style={{ color: '#10B981' }}>{doneCount}/5</span>
-      </div>
-      <div className="flex gap-1.5">
-        {PRAYERS.map(p => (
-          <div key={p.key} className="flex-1 flex flex-col items-center gap-1 py-2.5 rounded-2xl"
+    <div className="glass rounded-3xl p-5">
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-xmuted)' }}>
+          Задачи за 7 дней
+        </p>
+        {avg7 > 0 && (
+          <span className="text-xs font-bold px-2.5 py-1 rounded-full"
             style={{
-              background: done[p.key] ? 'rgba(16,185,129,0.12)' : 'var(--bg-s1)',
-              border: done[p.key] ? '1px solid rgba(16,185,129,0.25)' : '1px solid var(--card-border)',
+              background: trendDelta >= 0 ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+              color:      trendDelta >= 0 ? '#10B981' : '#EF4444',
             }}>
-            <span className="text-base leading-none">{p.icon}</span>
-            <span className="text-[9px] font-semibold"
-              style={{ color: done[p.key] ? '#10B981' : 'var(--text-xmuted)' }}>
-              {p.label}
-            </span>
-            {done[p.key] && (
-              <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
-                <path d="M1.5 4.5l2 2 4-4" stroke="#10B981" strokeWidth="1.8"
-                  strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            )}
-          </div>
-        ))}
+            {trendDelta >= 0 ? '+' : ''}{trendDelta}% к пред. неделе
+          </span>
+        )}
+      </div>
+      <div className="flex items-end justify-between gap-1.5" style={{ height: 80 }}>
+        {bars.map((b, i) => {
+          const color = b.isToday
+            ? (b.pct >= 75 ? '#10B981' : b.pct >= 40 ? '#F59E0B' : b.pct > 0 ? '#EF4444' : 'var(--bg-s1)')
+            : b.hasData ? 'rgba(16,185,129,0.3)' : 'var(--bg-s1)'
+          return (
+            <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
+              <div className="w-full flex flex-col justify-end" style={{ height: 56 }}>
+                <div className="w-full rounded-t-lg transition-all duration-700"
+                  style={{ height: `${Math.max((b.pct / max) * 100, 4)}%`, background: color, minHeight: 4 }} />
+              </div>
+              <span className="text-[10px] font-semibold"
+                style={{ color: b.isToday ? '#10B981' : 'var(--text-xmuted)' }}>
+                {b.label}
+              </span>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
 }
 
-/* ── Single insight pill ── */
+/* ── Best prayer block ── */
+function BestBlock({ block, count }) {
+  if (!block) return null
+  return (
+    <div className="glass-emerald rounded-3xl p-4 flex items-center gap-4">
+      <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0"
+        style={{ background: 'rgba(245,158,11,0.15)' }}>
+        {block.icon}
+      </div>
+      <div className="flex-1">
+        <p className="text-[10px] font-bold uppercase tracking-wider mb-0.5"
+          style={{ color: '#F59E0B' }}>
+          Твой лучший блок
+        </p>
+        <p className="text-base font-black" style={{ color: 'var(--text-h)' }}>
+          {block.label}
+        </p>
+        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+          {count} {count === 1 ? 'задача' : count < 5 ? 'задачи' : 'задач'} выполнено
+        </p>
+      </div>
+      <span className="text-2xl">🏆</span>
+    </div>
+  )
+}
+
+/* ── Insight card ── */
 function InsightCard({ insight }) {
   const STYLES = {
     positive: { bg: 'rgba(16,185,129,0.08)',  border: 'rgba(16,185,129,0.2)'  },
@@ -119,7 +211,7 @@ function InsightCard({ insight }) {
   )
 }
 
-/* ── Upgrade / registration banner ── */
+/* ── Upgrade banner ── */
 function UpgradeBanner() {
   return (
     <div className="rounded-3xl overflow-hidden"
@@ -129,9 +221,7 @@ function UpgradeBanner() {
       }}>
       <div className="p-5 flex items-start gap-3">
         <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 text-2xl"
-          style={{ background: 'rgba(245,158,11,0.15)' }}>
-          ☁️
-        </div>
+          style={{ background: 'rgba(245,158,11,0.15)' }}>☁️</div>
         <div className="flex-1">
           <h3 className="font-bold text-sm mb-1" style={{ color: 'var(--text-h)' }}>
             Не потеряй свой прогресс
@@ -139,8 +229,7 @@ function UpgradeBanner() {
           <p className="text-xs leading-relaxed mb-3" style={{ color: 'var(--text-muted)' }}>
             Зарегистрируйся чтобы не потерять данные и получить месячную аналитику
           </p>
-          <button
-            className="w-full py-2.5 rounded-2xl text-sm font-bold transition-all active:scale-95"
+          <button className="w-full py-2.5 rounded-2xl text-sm font-bold active:scale-95 transition-all"
             style={{ background: '#F59E0B', color: '#FFFFFF' }}>
             Зарегистрироваться
           </button>
@@ -150,35 +239,46 @@ function UpgradeBanner() {
   )
 }
 
-/* ── Skeleton loader ── */
-function Skeleton({ h = 16, w = '100%', rounded = '12px' }) {
+/* ── Empty state ── */
+function EmptyState() {
   return (
-    <div className="animate-pulse" style={{ height: h, width: w, borderRadius: rounded, background: 'var(--bg-s1)' }} />
+    <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
+      <div className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl mb-5"
+        style={{ background: 'var(--bg-s1)' }}>
+        📊
+      </div>
+      <h2 className="text-lg font-black mb-2" style={{ color: 'var(--text-h)' }}>
+        Пока нет данных
+      </h2>
+      <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+        Начни отмечать намазы и задачи — и мы покажем твою статистику здесь
+      </p>
+      <div className="mt-6 flex gap-3">
+        <span className="text-xs font-semibold px-4 py-2 rounded-full"
+          style={{ background: 'rgba(16,185,129,0.1)', color: '#10B981', border: '1px solid rgba(16,185,129,0.2)' }}>
+          🕌 Намазы → Главная
+        </span>
+        <span className="text-xs font-semibold px-4 py-2 rounded-full"
+          style={{ background: 'rgba(245,158,11,0.1)', color: '#F59E0B', border: '1px solid rgba(245,158,11,0.2)' }}>
+          ✅ Задачи → Планировщик
+        </span>
+      </div>
+    </div>
   )
 }
 
 /* ── Main screen ── */
 export default function Progress() {
-  const { tasks, stats, loading } = useTasks()
-  const analytics = useAnalytics()
+  const { tasks } = useTasks()
+  const a = useAnalytics()
 
-  const now = new Date()
+  const now     = new Date()
   const dateStr = `${now.getDate()} ${MONTHS[now.getMonth()]}`
-
-  function motivational(pct) {
-    if (pct === 100) return { text: 'Маша Аллах! Всё выполнено 🌟', color: '#10B981' }
-    if (pct >= 75)   return { text: 'Отличный прогресс! 💪',         color: '#10B981' }
-    if (pct >= 50)   return { text: 'Ты на полпути 🚀',               color: '#F59E0B' }
-    if (pct >= 25)   return { text: 'Продолжай двигаться вперёд 🌱',  color: '#F59E0B' }
-    if (pct > 0)     return { text: 'Начало положено ✨',              color: 'var(--text-muted)' }
-    return             { text: 'Добавь задачи и начни день',           color: 'var(--text-xmuted)' }
-  }
-  const { text: motText, color: motColor } = motivational(stats.pct)
 
   return (
     <div className="page-enter min-h-full" style={{ background: 'var(--bg-page)' }}>
 
-      {/* ── Header ── */}
+      {/* Header */}
       <div className="relative overflow-hidden pt-12 pb-8 px-5"
         style={{ background: 'linear-gradient(160deg, var(--header-from) 0%, var(--header-to) 100%)' }}>
         <IslamicPattern />
@@ -188,125 +288,41 @@ export default function Progress() {
         </div>
       </div>
 
-      <div className="px-4 py-5 space-y-4">
+      {a.isEmpty ? (
+        <EmptyState />
+      ) : (
+        <div className="px-4 py-5 space-y-4 pb-28">
 
-        {/* ── Today's score ── */}
-        <div className="glass rounded-3xl p-5">
-          <p className="text-xs font-bold uppercase tracking-wider mb-4" style={{ color: 'var(--text-xmuted)' }}>
-            Сегодня
-          </p>
-          {loading ? (
-            <div className="flex items-center gap-5">
-              <div className="w-[120px] h-[120px] rounded-full animate-pulse" style={{ background: 'var(--bg-s1)' }} />
-              <div className="flex-1 space-y-2">
-                <Skeleton h={28} w="55%" rounded="8px" />
-                <Skeleton h={16} w="75%" rounded="8px" />
-                <Skeleton h={16} w="60%" rounded="8px" />
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-5">
-              <div className="relative flex-shrink-0">
-                <Ring pct={stats.pct} />
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-2xl font-black" style={{ color: 'var(--text-h)' }}>{stats.pct}%</span>
-                  <span className="text-[10px]" style={{ color: 'var(--text-xmuted)' }}>готово</span>
-                </div>
-              </div>
-              <div className="flex-1">
-                <p className="text-3xl font-black leading-none mb-1" style={{ color: 'var(--text-h)' }}>
-                  {stats.done}/{stats.total}
-                </p>
-                <p className="text-sm mb-2" style={{ color: 'var(--text-muted)' }}>задач выполнено</p>
-                <p className="text-sm font-semibold" style={{ color: motColor }}>{motText}</p>
+          {/* Today: prayer + task rings */}
+          <TodayStats todayPrayers={a.todayPrayers} todayTasks={a.todayTasks} />
+
+          {/* 7-day prayer calendar + streak */}
+          <PrayerCalendar calendar={a.prayerCalendar} streak={a.prayerStreak} />
+
+          {/* Best prayer time block */}
+          {a.bestBlock && <BestBlock block={a.bestBlock} count={a.bestBlockCount} />}
+
+          {/* 7-day task chart */}
+          {a.avg7 > 0 && (
+            <TaskWeekChart bars={a.taskWeekBars} trendDelta={a.trendDelta} avg7={a.avg7} />
+          )}
+
+          {/* Insights */}
+          {a.insights.length > 0 && (
+            <div className="glass rounded-3xl p-5">
+              <p className="text-xs font-bold uppercase tracking-wider mb-3"
+                style={{ color: 'var(--text-xmuted)' }}>Инсайты</p>
+              <div className="space-y-2.5">
+                {a.insights.map((ins, i) => <InsightCard key={i} insight={ins} />)}
               </div>
             </div>
           )}
+
+          {/* Upgrade banner after 7+ days */}
+          {a.showUpgradeBanner && <UpgradeBanner />}
+
         </div>
-
-        {/* ── Priority breakdown ── */}
-        {!loading && tasks.length > 0 && (
-          <div className="glass rounded-3xl p-5">
-            <p className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: 'var(--text-xmuted)' }}>
-              По приоритетам
-            </p>
-            <div className="space-y-3">
-              {[
-                { id: 'high',   label: 'Высокий', color: '#EF4444' },
-                { id: 'medium', label: 'Средний', color: '#F59E0B' },
-                { id: 'low',    label: 'Низкий',  color: '#10B981' },
-              ].map(p => {
-                const grp  = tasks.filter(t => t.priority === p.id)
-                if (!grp.length) return null
-                const done = grp.filter(t => t.done).length
-                const pct  = Math.round(done / grp.length * 100)
-                return (
-                  <div key={p.id}>
-                    <div className="flex justify-between mb-1.5">
-                      <span className="text-xs font-semibold" style={{ color: 'var(--text-body)' }}>{p.label}</span>
-                      <span className="text-xs" style={{ color: 'var(--text-xmuted)' }}>{done}/{grp.length}</span>
-                    </div>
-                    <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--bg-s1)' }}>
-                      <div className="h-full rounded-full transition-all duration-700"
-                        style={{ width: `${pct}%`, background: p.color }} />
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* ── 7-day trend ── */}
-        <div className="glass rounded-3xl p-5">
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-xmuted)' }}>
-              За 7 дней
-            </p>
-            {analytics.avg7 > 0 && (
-              <span className="text-xs font-bold px-2.5 py-1 rounded-full"
-                style={{
-                  background: analytics.trendDelta >= 0 ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
-                  color:      analytics.trendDelta >= 0 ? '#10B981' : '#EF4444',
-                }}>
-                {analytics.trendDelta >= 0 ? '+' : ''}{analytics.trendDelta}% к пред. неделе
-              </span>
-            )}
-          </div>
-          <WeekChart bars={analytics.weekBars} />
-        </div>
-
-        {/* ── Prayers ── */}
-        <div className="glass rounded-3xl p-5">
-          <PrayerGrid />
-          {analytics.prayerStreak >= 2 && (
-            <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-2xl"
-              style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.15)' }}>
-              <span className="text-base leading-none">🔥</span>
-              <span className="text-xs font-semibold" style={{ color: '#10B981' }}>
-                Стрик {analytics.prayerStreak}{' '}
-                {analytics.prayerStreak === 1 ? 'день' : analytics.prayerStreak < 5 ? 'дня' : 'дней'} подряд
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* ── Insights ── */}
-        <div className="glass rounded-3xl p-5">
-          <p className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: 'var(--text-xmuted)' }}>
-            Инсайты
-          </p>
-          <div className="space-y-2.5">
-            {analytics.insights.map((ins, i) => (
-              <InsightCard key={i} insight={ins} />
-            ))}
-          </div>
-        </div>
-
-        {/* ── Upgrade banner (7+ days of data) ── */}
-        {analytics.showUpgradeBanner && <UpgradeBanner />}
-
-      </div>
+      )}
     </div>
   )
 }

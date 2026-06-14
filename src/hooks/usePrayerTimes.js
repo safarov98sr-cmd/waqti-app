@@ -128,6 +128,7 @@ export function usePrayerTimes() {
     setDonePrayers(prev => {
       const next = { ...prev, [key]: !prev[key] }
       localStorage.setItem(doneKey(), JSON.stringify(next))
+      window.dispatchEvent(new CustomEvent('waqti:updated'))
       return next
     })
   }, [])

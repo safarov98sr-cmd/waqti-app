@@ -53,6 +53,7 @@ export function useTasks(date = today()) {
     const optimistic = (prev) => {
       const u = [...prev, task]
       lsSave(date, u)
+      window.dispatchEvent(new CustomEvent('waqti:updated'))
       return u
     }
     setTasks(optimistic)
@@ -71,6 +72,7 @@ export function useTasks(date = today()) {
         return { ...t, done: nowDone, done_at: nowDone ? new Date().toISOString() : undefined }
       })
       lsSave(date, u)
+      window.dispatchEvent(new CustomEvent('waqti:updated'))
       return u
     })
     if (supabase) {
@@ -101,6 +103,7 @@ export function useTasks(date = today()) {
     setTasks(prev => {
       const u = prev.filter(t => t.id !== id)
       lsSave(date, u)
+      window.dispatchEvent(new CustomEvent('waqti:updated'))
       return u
     })
     if (supabase) {

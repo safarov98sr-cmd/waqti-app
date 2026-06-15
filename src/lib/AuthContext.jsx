@@ -3,8 +3,7 @@ import { supabase } from './supabase'
 
 const AuthCtx = createContext({
   user: null, loading: true,
-  signIn:  async () => ({ error: null }),
-  signUp:  async () => ({ error: null }),
+  signInWithGoogle: async () => ({ error: null }),
   signOut: async () => {},
 })
 
@@ -29,18 +28,16 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  const signIn  = (email, password) =>
-    supabase?.auth.signInWithPassword({ email, password })
-    ?? Promise.resolve({ error: { message: 'Supabase не настроен' } })
-
-  const signUp  = (email, password) =>
-    supabase?.auth.signUp({ email, password })
-    ?? Promise.resolve({ error: { message: 'Supabase не настроен' } })
+  const signInWithGoogle = () =>
+    supabase?.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: 'https://app.waqtiai.app' },
+    }) ?? Promise.resolve({ error: { message: 'Supabase не настроен' } })
 
   const signOut = () => supabase?.auth.signOut()
 
   return (
-    <AuthCtx.Provider value={{ user, loading, signIn, signUp, signOut }}>
+    <AuthCtx.Provider value={{ user, loading, signInWithGoogle, signOut }}>
       {children}
     </AuthCtx.Provider>
   )

@@ -29,7 +29,7 @@ function translateError(msg = '') {
   if (msg.includes('Password should')) return 'Пароль минимум 6 символов'
   if (msg.includes('valid email')) return 'Введи корректный email'
   if (msg.includes('rate limit')) return 'Слишком много попыток. Подожди немного'
-  return msg
+  return 'Что-то пошло не так. Попробуй ещё раз'
 }
 
 export default function Auth({ onSkip }) {

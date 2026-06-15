@@ -229,7 +229,9 @@ function UpgradeBanner() {
           <p className="text-xs leading-relaxed mb-3" style={{ color: 'var(--text-muted)' }}>
             Зарегистрируйся чтобы не потерять данные и получить месячную аналитику
           </p>
-          <button className="w-full py-2.5 rounded-2xl text-sm font-bold active:scale-95 transition-all"
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('waqti:show-auth'))}
+            className="w-full py-2.5 rounded-2xl text-sm font-bold active:scale-95 transition-all"
             style={{ background: '#F59E0B', color: '#FFFFFF' }}>
             Зарегистрироваться
           </button>

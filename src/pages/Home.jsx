@@ -1,6 +1,8 @@
-import { useTheme }      from '../ThemeContext'
-import { usePrayerTimes } from '../hooks/usePrayerTimes'
-import IslamicPattern     from '../components/IslamicPattern'
+import { useState, useEffect } from 'react'
+import { useTheme }            from '../ThemeContext'
+import { useAuth }             from '../lib/AuthContext'
+import { usePrayerTimes }      from '../hooks/usePrayerTimes'
+import IslamicPattern          from '../components/IslamicPattern'
 
 const WEEKDAYS = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб']
 const MONTHS   = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек']
@@ -12,6 +14,17 @@ function greeting() {
   if (h < 17) return { text: 'Добрый день',   icon: '🌤️' }
   if (h < 21) return { text: 'Добрый вечер',  icon: '🌅' }
   return              { text: 'Доброй ночи',  icon: '⭐' }
+}
+
+function GoogleIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+    </svg>
+  )
 }
 
 /* ── Sun / Moon toggle ── */
@@ -29,18 +42,175 @@ function ThemeToggle() {
   )
 }
 
+/* ── Account circle button ── */
+function AccountButton({ onOpen }) {
+  const { user } = useAuth()
+  return (
+    <button
+      onClick={onOpen}
+      aria-label="Аккаунт"
+      className="w-10 h-10 rounded-2xl flex items-center justify-center transition-all active:scale-90"
+      style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)' }}
+    >
+      {user ? (
+        <span className="text-white text-sm font-black leading-none">
+          {(user.email?.[0] ?? '?').toUpperCase()}
+        </span>
+      ) : (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+          stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="8" r="4"/>
+          <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+        </svg>
+      )}
+    </button>
+  )
+}
+
+/* ── Account bottom sheet ── */
+function AccountSheet({ open, onClose }) {
+  const { user, signInWithGoogle, signOut } = useAuth()
+  const [loading, setLoading] = useState(false)
+
+  if (!open) return null
+
+  const handleSignIn = async () => {
+    setLoading(true)
+    await signInWithGoogle()
+    setLoading(false)
+  }
+
+  const handleSignOut = async () => {
+    await signOut()
+    onClose()
+  }
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 z-40"
+        style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+        onClick={onClose}
+      />
+
+      {/* Sheet */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center">
+        <div className="w-full max-w-[430px] rounded-t-3xl overflow-hidden"
+          style={{
+            background: 'var(--card-bg)',
+            border: '1px solid var(--card-border)',
+            boxShadow: '0 -8px 40px rgba(0,0,0,0.3)',
+          }}>
+
+          {/* Handle bar */}
+          <div className="flex justify-center pt-3 pb-0">
+            <div className="w-10 h-1 rounded-full" style={{ background: 'var(--card-border)' }} />
+          </div>
+
+          <div className="px-5 pt-5 pb-10">
+            {/* User info row */}
+            <div className="flex items-center gap-3.5 mb-6">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl flex-shrink-0"
+                style={{
+                  background: user ? 'rgba(16,185,129,0.15)' : 'var(--bg-s1)',
+                  color: user ? '#10B981' : 'var(--text-xmuted)',
+                }}>
+                {user ? (user.email?.[0] ?? '?').toUpperCase() : (
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="8" r="4"/>
+                    <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+                  </svg>
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-bold truncate" style={{ color: 'var(--text-h)' }}>
+                  {user ? user.email : 'Гость'}
+                </p>
+                <p className="text-xs" style={{ color: 'var(--text-xmuted)' }}>
+                  {user ? 'Google аккаунт' : 'Войди для синхронизации данных'}
+                </p>
+              </div>
+            </div>
+
+            {/* Action button */}
+            {user ? (
+              <button
+                onClick={handleSignOut}
+                className="w-full py-3.5 rounded-2xl text-sm font-bold transition-all active:scale-95"
+                style={{
+                  background: 'rgba(239,68,68,0.1)',
+                  color: '#EF4444',
+                  border: '1.5px solid rgba(239,68,68,0.2)',
+                }}>
+                Выйти
+              </button>
+            ) : (
+              <button
+                onClick={handleSignIn}
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl text-sm font-bold transition-all active:scale-95 disabled:opacity-60"
+                style={{ background: 'white', color: '#1F2937', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}>
+                {loading
+                  ? <div className="w-4 h-4 rounded-full border-2 border-gray-300 border-t-gray-700 animate-spin" />
+                  : <GoogleIcon />}
+                {loading ? 'Перенаправление...' : 'Войти через Google'}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}
+
+/* ── PWA install pill (only when beforeinstallprompt fires) ── */
+function InstallButton() {
+  const [prompt, setPrompt] = useState(null)
+
+  useEffect(() => {
+    const handler = (e) => { e.preventDefault(); setPrompt(e) }
+    window.addEventListener('beforeinstallprompt', handler)
+    return () => window.removeEventListener('beforeinstallprompt', handler)
+  }, [])
+
+  if (!prompt) return null
+
+  const install = async () => {
+    prompt.prompt()
+    const { outcome } = await prompt.userChoice
+    if (outcome === 'accepted') setPrompt(null)
+  }
+
+  return (
+    <button
+      onClick={install}
+      className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-all active:scale-95"
+      style={{
+        background: 'rgba(16,185,129,0.25)',
+        color: '#10B981',
+        border: '1px solid rgba(16,185,129,0.4)',
+      }}>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 3v12M8 11l4 4 4-4M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2"/>
+      </svg>
+      Установить
+    </button>
+  )
+}
+
 /* ── SVG ring countdown ── */
 function PrayerRing({ pct, icon }) {
   const R = 44, CX = 52, CY = 52
-  const circ = 2 * Math.PI * R // 276.5
+  const circ = 2 * Math.PI * R
   const offset = circ * (1 - pct)
   return (
     <div className="relative w-[104px] h-[104px] flex-shrink-0">
       <svg viewBox="0 0 104 104" className="w-full h-full ring-glow" style={{ transform: 'rotate(-90deg)' }}>
-        {/* Track */}
         <circle cx={CX} cy={CY} r={R} fill="none"
           stroke="rgba(16,185,129,0.15)" strokeWidth="7" />
-        {/* Progress */}
         <circle cx={CX} cy={CY} r={R} fill="none"
           stroke="#10B981" strokeWidth="7"
           strokeDasharray={circ}
@@ -63,11 +233,9 @@ function NextPrayerCard({ nextPrayer, countdown, ringPct }) {
   return (
     <div className="mx-4 -mt-4 mb-5 rounded-3xl overflow-hidden glass-emerald relative"
       style={{ boxShadow: '0 8px 40px rgba(16,185,129,0.18)' }}>
-      {/* subtle pattern inside card */}
       <IslamicPattern className="opacity-50" />
 
       <div className="relative z-10 p-5 flex items-center gap-4">
-        {/* Left */}
         <div className="flex-1 min-w-0">
           <p className="text-xs font-semibold uppercase tracking-wider mb-1"
             style={{ color: '#10B981', opacity: 0.8 }}>
@@ -87,7 +255,6 @@ function NextPrayerCard({ nextPrayer, countdown, ringPct }) {
           </div>
         </div>
 
-        {/* Ring */}
         <PrayerRing pct={ringPct} icon={nextPrayer.icon} />
       </div>
     </div>
@@ -101,19 +268,15 @@ function PrayerRow({ prayer, isNext, isDone, isPast, onToggle }) {
       onClick={onToggle}
       className="prayer-item w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-200 active:scale-[0.97] text-left"
       style={{
-        background: isNext
-          ? 'rgba(16,185,129,0.1)'
-          : isDone
-          ? 'var(--card-bg)'
-          : 'var(--card-bg)',
+        background: 'var(--card-bg)',
         border: isNext
           ? '1.5px solid rgba(16,185,129,0.35)'
-          : `1.5px solid var(--card-border)`,
+          : '1.5px solid var(--card-border)',
         boxShadow: isNext ? '0 2px 16px rgba(16,185,129,0.12)' : 'none',
         opacity: isPast && !isNext && !isDone ? 0.55 : 1,
+        ...(isNext && { background: 'rgba(16,185,129,0.1)' }),
       }}
     >
-      {/* Icon + name + time */}
       <div className="flex items-center gap-3">
         <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
           style={{
@@ -144,7 +307,6 @@ function PrayerRow({ prayer, isNext, isDone, isPast, onToggle }) {
         </div>
       </div>
 
-      {/* Checkbox */}
       <div
         className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 border-2 transition-all duration-200 ${isDone ? 'check-pop' : ''}`}
         style={{
@@ -207,6 +369,8 @@ export default function Home() {
     timeBlocks, cityName,
   } = usePrayerTimes()
 
+  const [sheetOpen, setSheetOpen] = useState(false)
+
   const now    = new Date()
   const nowM   = now.getHours() * 60 + now.getMinutes()
   const { text: greetText, icon: greetIcon } = greeting()
@@ -221,14 +385,17 @@ export default function Home() {
         style={{ background: 'linear-gradient(160deg, var(--header-from) 0%, var(--header-to) 100%)' }}>
         <IslamicPattern />
 
-        {/* Top row: date + toggle */}
+        {/* Top row: date + account + theme toggle */}
         <div className="relative z-10 flex items-center justify-between mb-4">
           <div>
             <p className="text-white/60 text-xs font-medium">
               {dateStr}{cityName ? ` · ${cityName}` : ''}
             </p>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            <AccountButton onOpen={() => setSheetOpen(true)} />
+            <ThemeToggle />
+          </div>
         </div>
 
         {/* Greeting */}
@@ -240,7 +407,7 @@ export default function Home() {
             Ас-саламу алейкум
           </h1>
 
-          {/* Stats pills */}
+          {/* Stats pills + optional install button */}
           <div className="flex flex-wrap gap-2">
             <span className="bg-white/15 backdrop-blur text-white text-xs font-semibold px-3 py-1.5 rounded-full">
               {loading ? '—/5' : `${donePrayerCount}/5`} намазов ✅
@@ -250,6 +417,7 @@ export default function Home() {
                 📍 {locError}
               </span>
             )}
+            <InstallButton />
           </div>
         </div>
       </div>
@@ -316,6 +484,9 @@ export default function Home() {
           </section>
         )}
       </div>
+
+      {/* Account bottom sheet */}
+      <AccountSheet open={sheetOpen} onClose={() => setSheetOpen(false)} />
     </div>
   )
 }

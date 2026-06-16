@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useTheme }            from '../ThemeContext'
 import { useAuth }             from '../lib/AuthContext'
 import { usePrayerTimes }      from '../hooks/usePrayerTimes'
+import { usePrayerLog }        from '../hooks/usePrayerLog'
 import IslamicPattern          from '../components/IslamicPattern'
 
 const WEEKDAYS = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб']
@@ -488,9 +489,10 @@ export default function Home() {
   const {
     prayers, loading, locError,
     nextPrayer, countdown, ringPct,
-    donePrayers, togglePrayer,
     timeBlocks, cityName,
   } = usePrayerTimes()
+
+  const { donePrayers, togglePrayer } = usePrayerLog()
 
   const [sheetOpen, setSheetOpen] = useState(false)
 

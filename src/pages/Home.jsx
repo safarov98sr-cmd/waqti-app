@@ -189,40 +189,70 @@ function AccountSheet({ open, onClose }) {
   )
 }
 
-/* ── PWA install pill (only when beforeinstallprompt fires) ── */
+/* ── PWA install pill (mobile only) ── */
 function InstallButton() {
-  const [prompt, setPrompt] = useState(null)
+  const [prompt,     setPrompt]     = useState(null)
+  const [showIOSTip, setShowIOSTip] = useState(false)
 
   useEffect(() => {
+    const isMobile = /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent)
+    if (!isMobile) return
+
+    // Android / Chrome: native install prompt
     const handler = (e) => { e.preventDefault(); setPrompt(e) }
     window.addEventListener('beforeinstallprompt', handler)
+
+    // iOS Safari: no beforeinstallprompt — show manual tip instead
+    const isIOS        = /iphone|ipad|ipod/i.test(navigator.userAgent)
+    const isStandalone = window.navigator.standalone === true
+    if (isIOS && !isStandalone) setShowIOSTip(true)
+
     return () => window.removeEventListener('beforeinstallprompt', handler)
   }, [])
 
-  if (!prompt) return null
-
-  const install = async () => {
-    prompt.prompt()
-    const { outcome } = await prompt.userChoice
-    if (outcome === 'accepted') setPrompt(null)
+  const pillCls = 'flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-all active:scale-95'
+  const pillStyle = {
+    background: 'rgba(16,185,129,0.25)',
+    color: '#10B981',
+    border: '1px solid rgba(16,185,129,0.4)',
+    touchAction: 'manipulation',
+    WebkitTapHighlightColor: 'transparent',
   }
 
-  return (
-    <button
-      onClick={install}
-      className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-all active:scale-95"
-      style={{
-        background: 'rgba(16,185,129,0.25)',
-        color: '#10B981',
-        border: '1px solid rgba(16,185,129,0.4)',
-      }}>
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-        stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 3v12M8 11l4 4 4-4M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2"/>
-      </svg>
-      Установить
-    </button>
-  )
+  if (prompt) {
+    const install = async () => {
+      prompt.prompt()
+      const { outcome } = await prompt.userChoice
+      if (outcome === 'accepted') setPrompt(null)
+    }
+    return (
+      <button onClick={install} className={pillCls} style={pillStyle}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 3v12M8 11l4 4 4-4M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2"/>
+        </svg>
+        Установить
+      </button>
+    )
+  }
+
+  if (showIOSTip) {
+    return (
+      <button
+        onClick={() => alert('Чтобы установить Waqti:\nНажми «Поделиться» → «Добавить на экран «Домой»»')}
+        className={pillCls}
+        style={pillStyle}
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M8 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-3M15 3h6m0 0v6m0-6L10 14"/>
+        </svg>
+        На экран
+      </button>
+    )
+  }
+
+  return null
 }
 
 /* ── SVG ring countdown ── */

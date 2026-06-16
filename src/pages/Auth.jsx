@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../lib/AuthContext'
 import IslamicPattern from '../components/IslamicPattern'
 
@@ -18,21 +18,51 @@ export default function Auth({ onSkip }) {
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState('')
 
+  // Read OAuth error from URL hash after Google redirect
+  useEffect(() => {
+    const hash   = window.location.hash
+    const search = window.location.search
+    const params = new URLSearchParams(
+      hash.startsWith('#') ? hash.slice(1) : search.startsWith('?') ? search.slice(1) : ''
+    )
+    const errDesc = params.get('error_description') || params.get('error') || ''
+    if (errDesc) {
+      console.log('[Waqti] OAuth error from URL:', errDesc)
+      if (errDesc.toLowerCase().includes('exchange') || errDesc.toLowerCase().includes('token')) {
+        setError(
+          'Ошибка входа: не удалось получить токен от Google. ' +
+          'Убедись, что Google OAuth настроен в Supabase и приложение не в режиме тестирования.'
+        )
+      } else {
+        setError('Не удалось войти через Google. Попробуй ещё раз.')
+      }
+      // Remove error params from URL so they don't re-appear on refresh
+      window.history.replaceState(null, '', window.location.pathname)
+    }
+  }, [])
+
   const handleGoogle = async () => {
     setError('')
     setLoading(true)
     const { error: err } = await signInWithGoogle()
     if (err) {
+      console.log('[Waqti] signInWithGoogle error:', err.message)
       setError('Не удалось войти через Google. Попробуй ещё раз.')
       setLoading(false)
     }
     // On success: browser redirects to Google → back to app.waqtiai.app
   }
 
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden px-5 py-10"
-      style={{ background: 'linear-gradient(160deg,#060E1A 0%,#0A1628 55%,#064E3B 100%)' }}>
+  const handleSkip = () => {
+    console.log('[Waqti] Skip tapped')
+    onSkip?.()
+  }
 
+  return (
+    <div
+      className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden px-5 py-10"
+      style={{ background: 'linear-gradient(160deg,#060E1A 0%,#0A1628 55%,#064E3B 100%)' }}
+    >
       {/* Background pattern */}
       <div className="absolute inset-0 opacity-[0.07] pointer-events-none">
         <IslamicPattern />
@@ -42,12 +72,14 @@ export default function Auth({ onSkip }) {
 
         {/* Logo */}
         <div className="text-center mb-10">
-          <div className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl mx-auto mb-5"
+          <div
+            className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl mx-auto mb-5"
             style={{
               background: 'rgba(16,185,129,0.18)',
               border: '1.5px solid rgba(16,185,129,0.35)',
               boxShadow: '0 0 40px rgba(16,185,129,0.2)',
-            }}>
+            }}
+          >
             ✦
           </div>
           <h1 className="text-4xl font-black text-white tracking-tight mb-2">Waqti</h1>
@@ -57,14 +89,15 @@ export default function Auth({ onSkip }) {
         </div>
 
         {/* Card */}
-        <div className="rounded-3xl p-7"
+        <div
+          className="rounded-3xl p-7"
           style={{
             background: 'rgba(255,255,255,0.06)',
             border: '1px solid rgba(255,255,255,0.1)',
             backdropFilter: 'blur(24px)',
             WebkitBackdropFilter: 'blur(24px)',
-          }}>
-
+          }}
+        >
           <p className="text-center text-sm font-medium mb-6" style={{ color: 'rgba(255,255,255,0.55)' }}>
             Войди чтобы синхронизировать данные между устройствами
           </p>
@@ -73,24 +106,31 @@ export default function Auth({ onSkip }) {
           <button
             onClick={handleGoogle}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl text-sm font-bold transition-all active:scale-95 disabled:opacity-60"
+            className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl text-sm font-bold transition-all active:scale-95 disabled:opacity-60 cursor-pointer"
             style={{
               background: 'white',
               color: '#1F2937',
               boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
-            }}>
-            {loading ? (
-              <div className="w-5 h-5 rounded-full border-2 border-gray-300 border-t-gray-700 animate-spin" />
-            ) : (
-              <GoogleIcon />
-            )}
+              touchAction: 'manipulation',
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            {loading
+              ? <div className="w-5 h-5 rounded-full border-2 border-gray-300 border-t-gray-700 animate-spin" />
+              : <GoogleIcon />}
             {loading ? 'Перенаправление...' : 'Войти через Google'}
           </button>
 
           {/* Error */}
           {error && (
-            <p className="mt-4 text-xs text-center px-3 py-2.5 rounded-2xl"
-              style={{ background: 'rgba(239,68,68,0.15)', color: '#FCA5A5', border: '1px solid rgba(239,68,68,0.2)' }}>
+            <p
+              className="mt-4 text-xs text-center px-3 py-2.5 rounded-2xl leading-relaxed"
+              style={{
+                background: 'rgba(239,68,68,0.15)',
+                color: '#FCA5A5',
+                border: '1px solid rgba(239,68,68,0.2)',
+              }}
+            >
               {error}
             </p>
           )}
@@ -103,8 +143,10 @@ export default function Auth({ onSkip }) {
               'Месячная аналитика',
             ].map((f, i) => (
               <div key={i} className="flex items-center gap-2.5">
-                <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'rgba(16,185,129,0.2)' }}>
+                <div
+                  className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'rgba(16,185,129,0.2)' }}
+                >
                   <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
                     <path d="M1.5 4l1.5 1.5 3.5-3" stroke="#10B981" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
@@ -115,12 +157,17 @@ export default function Auth({ onSkip }) {
           </div>
         </div>
 
-        {/* Skip */}
-        <button onClick={onSkip}
-          className="w-full mt-5 py-3 text-sm font-medium text-center transition-all"
-          style={{ color: 'rgba(255,255,255,0.3)' }}
-          onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.6)'}
-          onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.3)'}>
+        {/* Skip — larger tap target, no mouse hover handlers that can eat mobile taps */}
+        <button
+          onClick={handleSkip}
+          className="w-full mt-4 py-4 text-sm font-medium text-center cursor-pointer select-none"
+          style={{
+            color: 'rgba(255,255,255,0.55)',
+            touchAction: 'manipulation',
+            WebkitTapHighlightColor: 'transparent',
+            minHeight: '52px',
+          }}
+        >
           Продолжить без регистрации →
         </button>
       </div>

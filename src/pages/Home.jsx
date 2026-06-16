@@ -67,7 +67,7 @@ function AccountButton({ onOpen }) {
   )
 }
 
-/* ── Account modal ── */
+/* ── Account modal (centered overlay) ── */
 function AccountSheet({ open, onClose }) {
   const { user, signInWithGoogle, signOut } = useAuth()
   const [loading, setLoading] = useState(false)
@@ -86,106 +86,175 @@ function AccountSheet({ open, onClose }) {
   }
 
   return (
-    <>
-      {/* Backdrop — above bottom nav (z-50) */}
+    /* Full-screen overlay — above everything including bottom nav */
+    <div
+      className="fixed inset-0 flex items-center justify-center"
+      style={{ background: 'rgba(0,0,0,0.5)', zIndex: 9999 }}
+      onClick={onClose}
+    >
+      {/* Card — centered, fixed size, no scroll */}
       <div
-        className="fixed inset-0"
-        style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)', zIndex: 9998 }}
-        onClick={onClose}
-      />
-
-      {/* Sheet — above backdrop */}
-      <div
-        className="fixed inset-x-0 bottom-0 flex justify-center"
-        style={{ zIndex: 9999 }}
+        onClick={e => e.stopPropagation()}
+        style={{
+          position: 'relative',
+          width: '85%',
+          maxWidth: '340px',
+          height: '280px',
+          borderRadius: '24px',
+          background: 'var(--card-bg)',
+          border: '1px solid var(--card-border)',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.35)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          padding: '20px 20px 16px',
+        }}
       >
-        <div
-          className="w-full max-w-[430px] rounded-t-3xl px-6 pt-5 pb-14"
+        {/* X close */}
+        <button
+          onClick={onClose}
+          aria-label="Закрыть"
           style={{
-            background: 'var(--card-bg)',
-            border: '1px solid var(--card-border)',
-            borderBottom: 'none',
-            boxShadow: '0 -12px 60px rgba(0,0,0,0.45)',
-            minHeight: '320px',
+            position: 'absolute',
+            top: '14px',
+            right: '14px',
+            width: '28px',
+            height: '28px',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'var(--bg-s1)',
+            border: 'none',
+            cursor: 'pointer',
+            color: 'var(--text-muted)',
+            touchAction: 'manipulation',
+            WebkitTapHighlightColor: 'transparent',
           }}
         >
-          {/* Handle + close button */}
-          <div className="flex items-center justify-between mb-8">
-            <div className="w-10 h-1 rounded-full" style={{ background: 'var(--card-border)' }} />
-            <button
-              onClick={onClose}
-              aria-label="Закрыть"
-              className="w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90"
-              style={{ background: 'var(--bg-s1)', color: 'var(--text-muted)' }}
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
-                stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                <path d="M1 1l12 12M13 1L1 13"/>
-              </svg>
-            </button>
-          </div>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+            stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+            <path d="M1 1l10 10M11 1L1 11"/>
+          </svg>
+        </button>
 
-          {/* Avatar + name — centered */}
-          <div className="flex flex-col items-center mb-8">
-            <div
-              className="w-20 h-20 rounded-3xl flex items-center justify-center mb-4 font-black text-3xl"
-              style={{
-                background: user ? 'rgba(16,185,129,0.15)' : 'var(--bg-s1)',
-                color: user ? '#10B981' : 'var(--text-xmuted)',
-                border: user
-                  ? '2px solid rgba(16,185,129,0.3)'
-                  : '2px solid var(--card-border)',
-              }}
-            >
-              {user ? (user.email?.[0] ?? '?').toUpperCase() : (
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="8" r="4"/>
-                  <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-                </svg>
-              )}
-            </div>
-            <p className="text-lg font-bold mb-1" style={{ color: 'var(--text-h)' }}>
-              {user ? user.email : 'Гость'}
-            </p>
-            <p className="text-sm" style={{ color: 'var(--text-xmuted)' }}>
-              {user ? 'Google аккаунт' : 'Войди для синхронизации данных'}
-            </p>
-          </div>
+        {/* Avatar */}
+        <div style={{
+          width: '64px',
+          height: '64px',
+          borderRadius: '16px',
+          flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '26px',
+          fontWeight: '900',
+          background: user ? 'rgba(16,185,129,0.15)' : 'var(--bg-s1)',
+          color: user ? '#10B981' : 'var(--text-xmuted)',
+          border: user ? '2px solid rgba(16,185,129,0.3)' : '2px solid var(--card-border)',
+          marginBottom: '10px',
+        }}>
+          {user ? (user.email?.[0] ?? '?').toUpperCase() : (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="8" r="4"/>
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+            </svg>
+          )}
+        </div>
 
-          {/* Action button */}
-          {user ? (
-            <button
-              onClick={handleSignOut}
-              className="w-full py-4 rounded-2xl text-base font-bold transition-all active:scale-95"
-              style={{
-                background: 'rgba(239,68,68,0.12)',
-                color: '#EF4444',
-                border: '1.5px solid rgba(239,68,68,0.25)',
-              }}
-            >
-              Выйти
-            </button>
-          ) : (
+        {/* Email / Гость */}
+        <p style={{
+          color: 'var(--text-h)',
+          fontWeight: '700',
+          fontSize: '14px',
+          marginBottom: '14px',
+          maxWidth: '100%',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          flexShrink: 0,
+        }}>
+          {user ? user.email : 'Гость'}
+        </p>
+
+        {user ? (
+          /* Logged-in: red Выйти */
+          <button
+            onClick={handleSignOut}
+            style={{
+              width: '100%',
+              padding: '13px',
+              borderRadius: '14px',
+              background: 'transparent',
+              border: 'none',
+              color: '#EF4444',
+              fontSize: '15px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              touchAction: 'manipulation',
+              WebkitTapHighlightColor: 'transparent',
+              flexShrink: 0,
+            }}
+          >
+            Выйти
+          </button>
+        ) : (
+          <>
+            {/* Войти через Google — emerald */}
             <button
               onClick={handleSignIn}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl text-base font-bold transition-all active:scale-95 disabled:opacity-60"
               style={{
+                width: '100%',
+                padding: '13px',
+                borderRadius: '14px',
                 background: 'linear-gradient(135deg,#10B981,#059669)',
                 color: 'white',
-                boxShadow: '0 6px 24px rgba(16,185,129,0.4)',
+                border: 'none',
+                fontSize: '14px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                marginBottom: '8px',
+                touchAction: 'manipulation',
+                WebkitTapHighlightColor: 'transparent',
+                opacity: loading ? 0.65 : 1,
+                flexShrink: 0,
+                boxShadow: '0 4px 16px rgba(16,185,129,0.35)',
               }}
             >
               {loading
-                ? <div className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                ? <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
                 : <GoogleIcon />}
               {loading ? 'Перенаправление...' : 'Войти через Google'}
             </button>
-          )}
-        </div>
+
+            {/* Продолжить как гость */}
+            <button
+              onClick={onClose}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-xmuted)',
+                fontSize: '13px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                padding: '4px 8px',
+                touchAction: 'manipulation',
+                WebkitTapHighlightColor: 'transparent',
+                flexShrink: 0,
+              }}
+            >
+              Продолжить как гость
+            </button>
+          </>
+        )}
       </div>
-    </>
+    </div>
   )
 }
 

@@ -1,5 +1,5 @@
-import { useTasks }     from '../hooks/useTasks'
 import { useAnalytics } from '../hooks/useAnalytics'
+import { useAuth }      from '../lib/AuthContext'
 import IslamicPattern   from '../components/IslamicPattern'
 
 const MONTHS = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек']
@@ -271,7 +271,7 @@ function EmptyState() {
 
 /* ── Main screen ── */
 export default function Progress() {
-  const { tasks } = useTasks()
+  const { user } = useAuth()
   const a = useAnalytics()
 
   const now     = new Date()
@@ -320,8 +320,8 @@ export default function Progress() {
             </div>
           )}
 
-          {/* Upgrade banner after 7+ days */}
-          {a.showUpgradeBanner && <UpgradeBanner />}
+          {/* Upgrade banner: only for guests after 7+ days of data */}
+          {a.showUpgradeBanner && !user && <UpgradeBanner />}
 
         </div>
       )}

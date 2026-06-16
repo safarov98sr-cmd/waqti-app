@@ -23,12 +23,12 @@ function plural(n, one, few, many) {
 }
 
 function compute() {
-  const today   = new Date()
+  const today    = new Date()
   const todayStr = today.toISOString().split('T')[0]
-  const days = []
+  const days     = []
 
   for (let i = 29; i >= 0; i--) {
-    const d = new Date(today)
+    const d       = new Date(today)
     d.setDate(d.getDate() - i)
     const dateStr = d.toISOString().split('T')[0]
 
@@ -42,14 +42,14 @@ function compute() {
 
     const movedTasks = tasks.filter(t => t.moved_at)
     const pmMoves    = movedTasks.filter(t => new Date(t.moved_at).getHours() >= 12).length
-    const amMoves    = movedTasks.length - pmMoves
 
     days.push({
       date: dateStr, isToday: dateStr === todayStr,
       weekday: d.getDay(),
       hasData: taskTotal > 0 || prayersDone > 0,
       taskTotal, taskDone, taskPct,
-      prayersDone, pmMoves, amMoves,
+      prayersDone,
+      pmMoves, amMoves: movedTasks.length - pmMoves,
       tasks,
     })
   }
@@ -65,16 +65,8 @@ function compute() {
   // ── 7-day window ──
   const week7 = days.slice(-7)
 
-  // Prayer calendar: 7 columns, each with day label + prayers done (0-5)
+  // Prayer calendar (7-day bars)
   const prayerCalendar = week7.map(d => ({
-    label:   WEEKDAY_SHORT[d.weekday],
-    done:    d.prayersDone,
-    isToday: d.isToday,
-    hasData: d.hasData,
-  }))
-
-  // Prayer bar chart (prayers done 0-5 per day)
-  const prayerWeekBars = week7.map(d => ({
     label:   WEEKDAY_SHORT[d.weekday],
     done:    d.prayersDone,
     isToday: d.isToday,
@@ -90,10 +82,10 @@ function compute() {
   }))
 
   // Week-over-week task trend
-  const last7  = week7.filter(d => d.taskPct !== null)
-  const prev7  = days.slice(-14, -7).filter(d => d.taskPct !== null)
-  const avg7   = last7.length ? Math.round(last7.reduce((s,d) => s + d.taskPct, 0) / last7.length) : 0
-  const avgP7  = prev7.length ? Math.round(prev7.reduce((s,d) => s + d.taskPct, 0) / prev7.length) : 0
+  const last7      = week7.filter(d => d.taskPct !== null)
+  const prev7      = days.slice(-14, -7).filter(d => d.taskPct !== null)
+  const avg7       = last7.length ? Math.round(last7.reduce((s,d) => s + d.taskPct, 0) / last7.length) : 0
+  const avgP7      = prev7.length ? Math.round(prev7.reduce((s,d) => s + d.taskPct, 0) / prev7.length) : 0
   const trendDelta = avg7 - avgP7
 
   // Best weekday by task completion
@@ -116,7 +108,7 @@ function compute() {
     else break
   }
 
-  // Most productive prayer block (block with most completed tasks)
+  // Most productive prayer block
   const blockCounts = {}
   days.forEach(d => {
     d.tasks.forEach(t => {
@@ -165,16 +157,12 @@ function compute() {
 
   return {
     isEmpty,
-    todayPrayers,
-    todayTasks,
-    prayerCalendar,
-    prayerWeekBars,
-    taskWeekBars,
+    todayPrayers, todayTasks,
+    prayerCalendar, taskWeekBars,
     trendDelta, avg7,
     bestDay, bestDayPct,
     bestBlock, bestBlockCount,
-    prayerStreak,
-    insights,
+    prayerStreak, insights,
     daysWithData,
     showUpgradeBanner: daysWithData >= 7,
   }
@@ -186,7 +174,8 @@ export function useAnalytics() {
   useEffect(() => {
     const refresh = () => setData(compute())
     window.addEventListener('waqti:updated', refresh)
-    const id = setInterval(refresh, 3000) // fallback poll
+    // Fallback poll — reduced from 3s to 15s; waqti:updated handles real-time
+    const id = setInterval(refresh, 15_000)
     return () => {
       window.removeEventListener('waqti:updated', refresh)
       clearInterval(id)

@@ -66,7 +66,7 @@ export function usePrayerTimes() {
           time: timings[p.key],
           mins: toMins(timings[p.key]),
         }))
-        setCityName(meta?.timezone?.split('/')[1]?.replace('_', ' ') ?? '')
+        setCityName(meta?.timezone?.split('/')[1]?.replaceAll('_', ' ') ?? '')
         setPrayers(parsed)
         localStorage.setItem(ck, JSON.stringify(parsed))
         setLoading(false)
@@ -118,21 +118,6 @@ export function usePrayerTimes() {
     setRingPct(Math.min(1, Math.max(0, elapsed / totalSecs)))
   }, [prayers, tick])
 
-  // Prayer done state (per-day localStorage)
-  const doneKey = () => `pd_${todayKey()}`
-  const [donePrayers, setDonePrayers] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(doneKey()) ?? '{}') } catch { return {} }
-  })
-
-  const togglePrayer = useCallback((key) => {
-    setDonePrayers(prev => {
-      const next = { ...prev, [key]: !prev[key] }
-      localStorage.setItem(doneKey(), JSON.stringify(next))
-      window.dispatchEvent(new CustomEvent('waqti:updated'))
-      return next
-    })
-  }, [])
-
   // Time blocks between prayers
   const timeBlocks = prayers.length
     ? prayers.map((p, i) => {
@@ -146,7 +131,6 @@ export function usePrayerTimes() {
 
   return {
     prayers, loading, locError, nextPrayer, prevPrayer,
-    countdown, ringPct, donePrayers, togglePrayer,
-    timeBlocks, cityName,
+    countdown, ringPct, timeBlocks, cityName,
   }
 }

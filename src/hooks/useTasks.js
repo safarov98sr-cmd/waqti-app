@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase }    from '../lib/supabase'
+import { useAuth }     from '../lib/AuthContext'
 import { getDeviceId } from '../lib/deviceId'
 
 const fmtDate = (d) => d.toISOString().split('T')[0]
@@ -11,31 +12,28 @@ const lsLoad = (date) => { try { return JSON.parse(localStorage.getItem(lsKey(da
 const lsSave = (date, tasks) => localStorage.setItem(lsKey(date), JSON.stringify(tasks))
 
 export function useTasks(date = today()) {
+  const { user }  = useAuth()
   const [tasks,   setTasks]   = useState([])
   const [loading, setLoading] = useState(true)
   const deviceId = getDeviceId()
 
-  // Load
+  // Load — use user_id when logged in (cross-device sync), device_id for guests
   useEffect(() => {
     setLoading(true)
     if (supabase) {
-      supabase
-        .from('tasks')
-        .select('*')
-        .eq('device_id', deviceId)
-        .eq('date', date)
-        .order('created_at')
-        .then(({ data, error }) => {
-          const result = error ? lsLoad(date) : (data ?? [])
-          setTasks(result)
-          if (!error) lsSave(date, result)
-          setLoading(false)
-        })
+      const q = supabase.from('tasks').select('*').eq('date', date).order('created_at')
+      const filtered = user ? q.eq('user_id', user.id) : q.eq('device_id', deviceId)
+      filtered.then(({ data, error }) => {
+        const result = error ? lsLoad(date) : (data ?? [])
+        setTasks(result)
+        if (!error) lsSave(date, result)
+        setLoading(false)
+      })
     } else {
       setTasks(lsLoad(date))
       setLoading(false)
     }
-  }, [date, deviceId])
+  }, [date, user, deviceId])
 
   // Add
   const addTask = useCallback(async (title, priority = 'medium', prayerBlock = null) => {
@@ -43,6 +41,7 @@ export function useTasks(date = today()) {
     const task = {
       id: crypto.randomUUID(),
       device_id: deviceId,
+      ...(user && { user_id: user.id }),
       title: title.trim(),
       priority,
       prayerBlock,
@@ -50,34 +49,44 @@ export function useTasks(date = today()) {
       date,
       created_at: new Date().toISOString(),
     }
-    const optimistic = (prev) => {
-      const u = [...prev, task]
-      lsSave(date, u)
-      window.dispatchEvent(new CustomEvent('waqti:updated'))
-      return u
-    }
-    setTasks(optimistic)
-    if (supabase) {
-      const { data } = await supabase.from('tasks').insert(task).select().single()
-      if (data) setTasks(prev => prev.map(t => t.id === task.id ? data : t))
-    }
-  }, [date, deviceId])
-
-  // Toggle done
-  const toggleDone = useCallback(async (id) => {
     setTasks(prev => {
-      const u = prev.map(t => {
-        if (t.id !== id) return t
-        const nowDone = !t.done
-        return { ...t, done: nowDone, done_at: nowDone ? new Date().toISOString() : undefined }
-      })
+      const u = [...prev, task]
       lsSave(date, u)
       window.dispatchEvent(new CustomEvent('waqti:updated'))
       return u
     })
     if (supabase) {
-      const task = tasks.find(t => t.id === id)
-      if (task) await supabase.from('tasks').update({ done: !task.done }).eq('id', id)
+      const { data, error } = await supabase.from('tasks').insert(task).select().single()
+      if (error) {
+        console.error('[useTasks] addTask:', error.message)
+      } else if (data) {
+        setTasks(prev => prev.map(t => t.id === task.id ? data : t))
+      }
+    }
+  }, [date, deviceId, user])
+
+  // Toggle done — capture newDone before setTasks to avoid stale closure in Supabase call
+  const toggleDone = useCallback(async (id) => {
+    const task = tasks.find(t => t.id === id)
+    if (!task) return
+    const newDone = !task.done
+    const now     = new Date().toISOString()
+
+    setTasks(prev => {
+      const u = prev.map(t =>
+        t.id !== id ? t : { ...t, done: newDone, done_at: newDone ? now : null }
+      )
+      lsSave(date, u)
+      window.dispatchEvent(new CustomEvent('waqti:updated'))
+      return u
+    })
+
+    if (supabase) {
+      const { error } = await supabase
+        .from('tasks')
+        .update({ done: newDone, done_at: newDone ? now : null })
+        .eq('id', id)
+      if (error) console.error('[useTasks] toggleDone:', error.message)
     }
   }, [tasks, date])
 
@@ -85,16 +94,24 @@ export function useTasks(date = today()) {
   const moveToTomorrow = useCallback(async (id) => {
     const task = tasks.find(t => t.id === id)
     if (!task) return
+
     setTasks(prev => {
       const u = prev.filter(t => t.id !== id)
       lsSave(date, u)
+      window.dispatchEvent(new CustomEvent('waqti:updated'))
       return u
     })
-    const tmr = tomorrow()
+
+    const tmr      = tomorrow()
     const tmrTasks = lsLoad(tmr)
     lsSave(tmr, [...tmrTasks, { ...task, date: tmr, done: false, moved_at: new Date().toISOString() }])
+
     if (supabase) {
-      await supabase.from('tasks').update({ date: tmr, done: false }).eq('id', id)
+      const { error } = await supabase
+        .from('tasks')
+        .update({ date: tmr, done: false })
+        .eq('id', id)
+      if (error) console.error('[useTasks] moveToTomorrow:', error.message)
     }
   }, [tasks, date])
 
@@ -107,7 +124,8 @@ export function useTasks(date = today()) {
       return u
     })
     if (supabase) {
-      await supabase.from('tasks').delete().eq('id', id)
+      const { error } = await supabase.from('tasks').delete().eq('id', id)
+      if (error) console.error('[useTasks] deleteTask:', error.message)
     }
   }, [date])
 

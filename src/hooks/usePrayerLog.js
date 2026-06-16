@@ -66,9 +66,10 @@ export function usePrayerLog(date = todayKey()) {
 
       if (error) {
         console.error('[usePrayerLog] upsert:', error.message)
-        // Roll back on failure
+        // Roll back on failure and re-sync analytics
         setDonePrayers(prev)
         lsWrite(date, prev)
+        window.dispatchEvent(new CustomEvent('waqti:updated'))
       }
     }
   }, [user, date, donePrayers])

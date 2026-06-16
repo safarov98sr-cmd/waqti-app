@@ -392,13 +392,10 @@ function PrayerRow({ prayer, isNext, isDone, isPast, onToggle }) {
       onClick={onToggle}
       className="prayer-item w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-200 active:scale-[0.97] text-left"
       style={{
-        background: 'var(--card-bg)',
-        border: isNext
-          ? '1.5px solid rgba(16,185,129,0.35)'
-          : '1.5px solid var(--card-border)',
+        background: isNext ? 'rgba(16,185,129,0.1)' : 'var(--card-bg)',
+        border: isNext ? '1.5px solid rgba(16,185,129,0.35)' : '1.5px solid var(--card-border)',
         boxShadow: isNext ? '0 2px 16px rgba(16,185,129,0.12)' : 'none',
         opacity: isPast && !isNext && !isDone ? 0.55 : 1,
-        ...(isNext && { background: 'rgba(16,185,129,0.1)' }),
       }}
     >
       <div className="flex items-center gap-3">

@@ -77,9 +77,11 @@ function TaskCard({ task, onToggle, onMove, onDelete }) {
         <button
           onClick={() => onDelete(task.id)}
           className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-xl transition-all active:scale-90"
-          style={{ color: 'var(--text-xmuted)' }}
-          onMouseEnter={e => e.currentTarget.style.color = '#EF4444'}
-          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-xmuted)'}>
+          style={{
+            color: 'var(--text-xmuted)',
+            touchAction: 'manipulation',
+            WebkitTapHighlightColor: 'transparent',
+          }}>
           <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
             <path d="M2 3.5h11M6 3.5V2.5h3v1M5.5 3.5l.5 8M9.5 3.5l-.5 8"
               stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
@@ -160,9 +162,9 @@ export default function Tasks() {
   }
 
   // Group tasks by prayer block
-  const grouped = PRAYER_BLOCKS.map(b => ({
-    block: b,
-    tasks: tasks.filter(t => t.prayerBlock === b.id)
+  const grouped = PRAYER_BLOCKS.map(block => ({
+    block,
+    tasks: tasks.filter(t => t.prayerBlock === block.id)
       .sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]),
   })).filter(g => g.tasks.length > 0)
 
@@ -207,8 +209,8 @@ export default function Tasks() {
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleAdd()}
               placeholder="Добавить задачу..."
-              className="flex-1 text-sm outline-none bg-transparent"
-              style={{ color: 'var(--text-h)', '::placeholder': { color: 'var(--text-xmuted)' } }}
+              className="flex-1 text-sm outline-none bg-transparent task-input"
+              style={{ color: 'var(--text-h)' }}
             />
             <button
               onClick={handleAdd}

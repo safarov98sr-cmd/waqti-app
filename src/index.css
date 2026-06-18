@@ -128,8 +128,9 @@ html[data-theme="dark"] {
 }
 .ring-glow { animation: ring-pulse 2.5s ease-in-out infinite; }
 
-/* ── Task input placeholder ── */
-.task-input::placeholder { color: var(--text-xmuted); }
+/* ── Input placeholders ── */
+.task-input::placeholder  { color: var(--text-xmuted); }
+.coach-input::placeholder { color: var(--text-xmuted); }
 
 /* ── Gold number glow ── */
 @keyframes gold-pulse {

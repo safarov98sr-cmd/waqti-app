@@ -4,6 +4,7 @@ import { useAuth } from '../lib/AuthContext'
 import IslamicPattern from '../components/IslamicPattern'
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY
+console.log('[Coach] API KEY:', API_KEY ? `${API_KEY.slice(0, 8)}...` : 'ПУСТО')
 const genAI   = API_KEY ? new GoogleGenerativeAI(API_KEY) : null
 
 const SYSTEM_PROMPT =

@@ -48,7 +48,7 @@ export default function Coach() {
     if (!chatRef.current) {
       setMessages(prev => [
         ...prev,
-        { role: 'ai', text: 'API ключ не настроен. Добавь VITE_GEMINI_API_KEY в .env.local', error: true },
+        { role: 'ai', text: `Ошибка: VITE_GEMINI_API_KEY не найден в сборке (значение: ${API_KEY ? 'есть' : 'пусто'})`, error: true },
       ])
       setLoading(false)
       return
@@ -59,9 +59,10 @@ export default function Coach() {
       setMessages(prev => [...prev, { role: 'ai', text: result.response.text() }])
     } catch (e) {
       console.error('[Coach] Gemini error:', e)
+      const errText = e?.message || e?.toString() || 'Неизвестная ошибка'
       setMessages(prev => [
         ...prev,
-        { role: 'ai', text: 'Не удалось получить ответ. Попробуй ещё раз.', error: true },
+        { role: 'ai', text: `Ошибка API: ${errText}`, error: true },
       ])
     }
     setLoading(false)

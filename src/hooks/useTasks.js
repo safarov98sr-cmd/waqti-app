@@ -17,21 +17,46 @@ export function useTasks(date = today()) {
   const [loading, setLoading] = useState(true)
   const deviceId = getDeviceId()
 
-  // Load — use user_id when logged in (cross-device sync), device_id for guests
+  // Load tasks — migrate guest localStorage tasks to Supabase on first login
   useEffect(() => {
+    if (!supabase) {
+      setTasks(lsLoad(date))
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
-    if (supabase) {
-      const q = supabase.from('tasks').select('*').eq('date', date).order('created_at')
-      const filtered = user ? q.eq('user_id', user.id) : q.eq('device_id', deviceId)
-      filtered.then(({ data, error }) => {
+
+    if (user) {
+      const run = async () => {
+        // Migrate any guest tasks that don't have a user_id yet
+        const localTasks = lsLoad(date)
+        const guestTasks = localTasks.filter(t => !t.user_id)
+        if (guestTasks.length) {
+          const { error } = await supabase.from('tasks').upsert(
+            guestTasks.map(t => ({ ...t, user_id: user.id })),
+            { onConflict: 'id', ignoreDuplicates: true }
+          )
+          if (error) console.error('[useTasks] migrate:', error.message)
+        }
+
+        // Load merged result from Supabase
+        const { data, error } = await supabase
+          .from('tasks').select('*').eq('date', date).eq('user_id', user.id).order('created_at')
         const result = error ? lsLoad(date) : (data ?? [])
         setTasks(result)
         if (!error) lsSave(date, result)
         setLoading(false)
-      })
+      }
+      run()
     } else {
-      setTasks(lsLoad(date))
-      setLoading(false)
+      supabase.from('tasks').select('*').eq('date', date).eq('device_id', deviceId).order('created_at')
+        .then(({ data, error }) => {
+          const result = error ? lsLoad(date) : (data ?? [])
+          setTasks(result)
+          if (!error) lsSave(date, result)
+          setLoading(false)
+        })
     }
   }, [date, user, deviceId])
 
@@ -65,7 +90,7 @@ export function useTasks(date = today()) {
     }
   }, [date, deviceId, user])
 
-  // Toggle done — capture newDone before setTasks to avoid stale closure in Supabase call
+  // Toggle done
   const toggleDone = useCallback(async (id) => {
     const task = tasks.find(t => t.id === id)
     if (!task) return

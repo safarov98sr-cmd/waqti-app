@@ -1,14 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import { useAuth } from '../lib/AuthContext'
 import IslamicPattern from '../components/IslamicPattern'
 
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY
-console.log('[Coach] API KEY:', API_KEY ? `${API_KEY.slice(0, 8)}...` : 'ПУСТО')
-const genAI   = API_KEY ? new GoogleGenerativeAI(API_KEY) : null
+const API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY
 
 const SYSTEM_PROMPT =
-  'Ты коуч по продуктивности. Помогай планировать день и достигать целей. Отвечай кратко, дружелюбно. Не более 3-4 предложений.'
+  'Ты коуч по продуктивности в приложении Waqti. Помогай планировать день и достигать целей. Отвечай кратко, дружелюбно. Не более 3-4 предложений.'
 
 const SUGGESTIONS = [
   'Как лучше планировать день?',
@@ -19,20 +16,10 @@ const SUGGESTIONS = [
 export default function Coach() {
   const { user, signOut } = useAuth()
   const [messages, setMessages] = useState([])
+  const [history,  setHistory]  = useState([])
   const [input,    setInput]    = useState('')
   const [loading,  setLoading]  = useState(false)
-  const chatRef   = useRef(null)
   const bottomRef = useRef(null)
-  const inputRef  = useRef(null)
-
-  useEffect(() => {
-    if (!genAI) return
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
-      systemInstruction: SYSTEM_PROMPT,
-    })
-    chatRef.current = model.startChat()
-  }, [])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -42,28 +29,44 @@ export default function Coach() {
     const msg = (text ?? input).trim()
     if (!msg || loading) return
 
+    const newHistory = [...history, { role: 'user', content: msg }]
     setMessages(prev => [...prev, { role: 'user', text: msg }])
     setInput('')
     setLoading(true)
-
-    if (!chatRef.current) {
-      setMessages(prev => [
-        ...prev,
-        { role: 'ai', text: `Ошибка: VITE_GEMINI_API_KEY не найден в сборке (значение: ${API_KEY ? 'есть' : 'пусто'})`, error: true },
-      ])
-      setLoading(false)
-      return
-    }
+    setHistory(newHistory)
 
     try {
-      const result = await chatRef.current.sendMessage(msg)
-      setMessages(prev => [...prev, { role: 'ai', text: result.response.text() }])
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5',
+          max_tokens: 300,
+          system: SYSTEM_PROMPT,
+          messages: newHistory,
+        }),
+      })
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err?.error?.message || `HTTP ${response.status}`)
+      }
+
+      const data  = await response.json()
+      const reply = data.content?.[0]?.text || 'Пустой ответ'
+
+      setHistory(prev => [...prev, { role: 'assistant', content: reply }])
+      setMessages(prev => [...prev, { role: 'ai', text: reply }])
     } catch (e) {
-      console.error('[Coach] Gemini error:', e)
-      const errText = e?.message || e?.toString() || 'Неизвестная ошибка'
+      console.error('[Coach] Anthropic error:', e)
       setMessages(prev => [
         ...prev,
-        { role: 'ai', text: `Ошибка API: ${errText}`, error: true },
+        { role: 'ai', text: `Ошибка: ${e?.message || 'Неизвестная ошибка'}`, error: true },
       ])
     }
     setLoading(false)
@@ -180,12 +183,11 @@ export default function Coach() {
         )}
       </div>
 
-      {/* Input bar — sticky above bottom nav */}
+      {/* Input bar */}
       <div className="sticky bottom-0 flex-shrink-0 px-4 pt-2 pb-[76px]"
         style={{ background: 'var(--bg-page)', borderTop: '1px solid var(--card-border)' }}>
         <div className="flex items-center gap-2">
           <input
-            ref={inputRef}
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}

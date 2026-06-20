@@ -29,20 +29,24 @@ export function useTasks(date = today()) {
 
     if (user) {
       const run = async () => {
+        console.log('[useTasks] Loading for user:', user.id, 'date:', date)
+
         // Migrate any guest tasks that don't have a user_id yet
         const localTasks = lsLoad(date)
         const guestTasks = localTasks.filter(t => !t.user_id)
         if (guestTasks.length) {
+          console.log('[useTasks] Migrating guest tasks:', guestTasks.length)
           const { error } = await supabase.from('tasks').upsert(
             guestTasks.map(t => ({ ...t, user_id: user.id })),
             { onConflict: 'id', ignoreDuplicates: true }
           )
-          if (error) console.error('[useTasks] migrate:', error.message)
+          if (error) console.error('[useTasks] migrate error:', error.message)
         }
 
         // Load merged result from Supabase
         const { data, error } = await supabase
           .from('tasks').select('*').eq('date', date).eq('user_id', user.id).order('created_at')
+        console.log('[useTasks] Supabase load result:', { data, error })
         const result = error ? lsLoad(date) : (data ?? [])
         setTasks(result)
         if (!error) lsSave(date, result)
@@ -74,6 +78,7 @@ export function useTasks(date = today()) {
       date,
       created_at: new Date().toISOString(),
     }
+    console.log('[useTasks] Adding task:', task)
     setTasks(prev => {
       const u = [...prev, task]
       lsSave(date, u)
@@ -83,9 +88,10 @@ export function useTasks(date = today()) {
     if (supabase) {
       const { data, error } = await supabase.from('tasks').insert(task).select().single()
       if (error) {
-        console.error('[useTasks] addTask:', error.message)
-      } else if (data) {
-        setTasks(prev => prev.map(t => t.id === task.id ? data : t))
+        console.error('[useTasks] addTask Supabase error:', error.message, error.details, error.hint)
+      } else {
+        console.log('[useTasks] addTask saved to Supabase:', data)
+        if (data) setTasks(prev => prev.map(t => t.id === task.id ? data : t))
       }
     }
   }, [date, deviceId, user])

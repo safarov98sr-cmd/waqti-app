@@ -11,7 +11,7 @@ const lsKey  = (date) => `tasks_${date}`
 const lsLoad = (date) => { try { return JSON.parse(localStorage.getItem(lsKey(date)) ?? '[]') } catch { return [] } }
 const lsSave = (date, tasks) => localStorage.setItem(lsKey(date), JSON.stringify(tasks))
 
-// Normalize Supabase row → local task (table may use "completed" instead of "done")
+// Normalize Supabase row to local format (table uses "completed", not "done")
 const normalize = (row, localMap = new Map()) => {
   const local = localMap.get(row.id) ?? {}
   return {
@@ -22,7 +22,7 @@ const normalize = (row, localMap = new Map()) => {
   }
 }
 
-// Prepare row for Supabase — only confirmed columns
+// Only send columns that exist in the Supabase tasks table
 const toRow = (task, userId) => ({
   id:         task.id,
   user_id:    userId,
@@ -40,54 +40,43 @@ export function useTasks(date = today()) {
   const deviceId = getDeviceId()
 
   useEffect(() => {
-    if (!supabase) {
-      setTasks(lsLoad(date))
-      setLoading(false)
-      return
-    }
+    // 1. Show localStorage tasks immediately — never leave user staring at empty screen
+    const local = lsLoad(date)
+    setTasks(local)
+    setLoading(false)
 
-    setLoading(true)
+    // 2. Sync with Supabase in background
+    if (!supabase) return
 
-    if (user) {
-      const run = async () => {
-        const localTasks = lsLoad(date)
-        const localMap   = new Map(localTasks.map(t => [t.id, t]))
-
-        // Migrate guest tasks (those without user_id) to Supabase
-        const guestTasks = localTasks.filter(t => !t.user_id)
-        if (guestTasks.length) {
-          const { error } = await supabase.from('tasks').upsert(
-            guestTasks.map(t => toRow(t, user.id)),
+    const sync = async () => {
+      if (user) {
+        // Migrate any local guest tasks (no user_id) to Supabase
+        const guests = local.filter(t => !t.user_id)
+        if (guests.length) {
+          await supabase.from('tasks').upsert(
+            guests.map(t => toRow(t, user.id)),
             { onConflict: 'id', ignoreDuplicates: true }
           )
-          if (error) console.error('[useTasks] migrate:', error.message)
         }
 
-        // Load from Supabase
+        // Fetch synced tasks from Supabase
         const { data, error } = await supabase
           .from('tasks').select('*').eq('date', date).eq('user_id', user.id).order('created_at')
+        if (error) { console.error('[useTasks] sync error:', error.message); return }
 
-        if (error) {
-          console.error('[useTasks] load error:', error.message)
-          setTasks(localTasks)
-          setLoading(false)
-          return
-        }
+        const localMap = new Map(local.map(t => [t.id, t]))
+        const sbTasks  = (data ?? []).map(r => normalize(r, localMap))
+        const sbIds    = new Set(sbTasks.map(t => t.id))
 
-        const sbTasks = (data ?? []).map(r => normalize(r, localMap))
-        const sbIds   = new Set(sbTasks.map(t => t.id))
+        // Keep unsynced local tasks visible
+        const unsynced = local.filter(t => !sbIds.has(t.id))
 
-        // Include local tasks that didn't make it to Supabase yet
-        const unsynced = localTasks.filter(t => !sbIds.has(t.id))
-
-        // Re-sync unsynced tasks
+        // Push unsynced tasks to Supabase
         if (unsynced.length) {
           supabase.from('tasks').upsert(
             unsynced.map(t => toRow({ ...t, user_id: user.id }, user.id)),
             { onConflict: 'id', ignoreDuplicates: true }
-          ).then(({ error: e }) => {
-            if (e) console.error('[useTasks] re-sync:', e.message)
-          })
+          ).then(({ error: e }) => { if (e) console.error('[useTasks] re-sync:', e.message) })
         }
 
         const result = [...sbTasks, ...unsynced].sort(
@@ -95,18 +84,20 @@ export function useTasks(date = today()) {
         )
         setTasks(result)
         lsSave(date, result)
-        setLoading(false)
-      }
-      run()
-    } else {
-      supabase.from('tasks').select('*').eq('date', date).eq('device_id', deviceId).order('created_at')
-        .then(({ data, error }) => {
-          const result = error ? lsLoad(date) : (data ?? []).map(r => normalize(r))
+      } else {
+        // Guest: load from Supabase by device_id (update local if Supabase has more)
+        const { data, error } = await supabase
+          .from('tasks').select('*').eq('date', date).eq('device_id', deviceId).order('created_at')
+        if (error) { console.error('[useTasks] sync error:', error.message); return }
+        if (data?.length) {
+          const result = data.map(r => normalize(r))
           setTasks(result)
-          if (!error) lsSave(date, result)
-          setLoading(false)
-        })
+          lsSave(date, result)
+        }
+      }
     }
+
+    sync()
   }, [date, user, deviceId])
 
   // Add
@@ -130,11 +121,10 @@ export function useTasks(date = today()) {
       return u
     })
     if (supabase) {
-      const row = user ? toRow(task, user.id) : {
-        id: task.id, device_id: deviceId, title: task.title,
-        completed: false, date, created_at: task.created_at,
-      }
-      const { error } = await supabase.from('tasks').insert(row)
+      const row = toRow(task, user?.id ?? task.device_id)
+      const { error } = await supabase.from('tasks').insert(
+        user ? row : { ...row, user_id: undefined }
+      )
       if (error) console.error('[useTasks] addTask:', error.message, '| hint:', error.hint)
     }
   }, [date, deviceId, user])
@@ -157,9 +147,7 @@ export function useTasks(date = today()) {
 
     if (supabase) {
       const { error } = await supabase
-        .from('tasks')
-        .update({ completed: newDone })
-        .eq('id', id)
+        .from('tasks').update({ completed: newDone }).eq('id', id)
       if (error) console.error('[useTasks] toggleDone:', error.message)
     }
   }, [tasks, date])

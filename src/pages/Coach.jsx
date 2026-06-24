@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import ReactMarkdown from 'react-markdown'
 import { useAuth } from '../lib/AuthContext'
 import IslamicPattern from '../components/IslamicPattern'
 
@@ -126,7 +127,7 @@ export default function Coach() {
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div
-              className="max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed"
+              className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed${m.role !== 'user' ? ' coach-md' : ''}`}
               style={m.role === 'user'
                 ? { background: '#10B981', color: 'white', borderBottomRightRadius: 6 }
                 : {
@@ -136,7 +137,7 @@ export default function Coach() {
                     borderBottomLeftRadius: 6,
                   }
               }>
-              {m.text}
+              {m.role === 'user' ? m.text : <ReactMarkdown>{m.text}</ReactMarkdown>}
             </div>
           </div>
         ))}

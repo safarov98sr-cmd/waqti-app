@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTheme }            from '../ThemeContext'
 import { useAuth }             from '../lib/AuthContext'
 import { usePrayerTimes }      from '../hooks/usePrayerTimes'
@@ -43,219 +43,153 @@ function ThemeToggle() {
   )
 }
 
-/* ── Account circle button ── */
-function AccountButton({ onOpen }) {
-  const { user } = useAuth()
-  return (
-    <button
-      onClick={onOpen}
-      aria-label="Аккаунт"
-      className="w-10 h-10 rounded-2xl flex items-center justify-center transition-all active:scale-90"
-      style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)' }}
-    >
-      {user ? (
-        <span className="text-white text-sm font-black leading-none">
-          {(user.email?.[0] ?? '?').toUpperCase()}
-        </span>
-      ) : (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-          stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="8" r="4"/>
-          <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-        </svg>
-      )}
-    </button>
-  )
-}
-
-/* ── Account modal (centered overlay) ── */
-function AccountSheet({ open, onClose }) {
+/* ── Account button + dropdown menu ── */
+function AccountDropdown() {
   const { user, signInWithGoogle, signOut } = useAuth()
-  const [loading, setLoading] = useState(false)
+  const [open,    setOpen]    = useState(false)
+  const [signingIn, setSigningIn] = useState(false)
+  const btnRef = useRef(null)
+  const menuRef = useRef(null)
 
-  if (!open) return null
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return
+    const handler = (e) => {
+      if (!menuRef.current?.contains(e.target) && !btnRef.current?.contains(e.target)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('pointerdown', handler)
+    return () => document.removeEventListener('pointerdown', handler)
+  }, [open])
 
   const handleSignIn = async () => {
-    setLoading(true)
+    setSigningIn(true)
     await signInWithGoogle()
-    setLoading(false)
+    setSigningIn(false)
+    setOpen(false)
   }
 
   const handleSignOut = async () => {
     await signOut()
-    onClose()
+    setOpen(false)
+  }
+
+  // Calculate dropdown position from button rect
+  const [pos, setPos] = useState({ top: 0, right: 0 })
+  const toggle = () => {
+    if (!open && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect()
+      setPos({ top: r.bottom + 8, right: window.innerWidth - r.right })
+    }
+    setOpen(o => !o)
   }
 
   return (
-    /* Full-screen overlay — above everything including bottom nav */
-    <div
-      className="fixed inset-0 flex items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.5)', zIndex: 9999 }}
-      onClick={onClose}
-    >
-      {/* Card — centered, fixed size, no scroll */}
-      <div
-        onClick={e => e.stopPropagation()}
+    <>
+      {/* Circle button */}
+      <button
+        ref={btnRef}
+        onClick={toggle}
+        aria-label="Аккаунт"
+        className="w-10 h-10 rounded-2xl flex items-center justify-center transition-all active:scale-90"
         style={{
-          position: 'relative',
-          width: '85%',
-          maxWidth: '340px',
-          height: '280px',
-          borderRadius: '24px',
-          background: 'var(--card-bg)',
-          border: '1px solid var(--card-border)',
-          boxShadow: '0 24px 64px rgba(0,0,0,0.35)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          padding: '20px 20px 16px',
+          background: open ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.15)',
+          backdropFilter: 'blur(8px)',
+          touchAction: 'manipulation',
+          WebkitTapHighlightColor: 'transparent',
         }}
       >
-        {/* X close */}
-        <button
-          onClick={onClose}
-          aria-label="Закрыть"
+        {user ? (
+          <span className="text-white text-sm font-black leading-none">
+            {(user.email?.[0] ?? '?').toUpperCase()}
+          </span>
+        ) : (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+            stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="8" r="4"/>
+            <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+          </svg>
+        )}
+      </button>
+
+      {/* Dropdown — fixed so it's not clipped by overflow:hidden parents */}
+      {open && (
+        <div
+          ref={menuRef}
           style={{
-            position: 'absolute',
-            top: '14px',
-            right: '14px',
-            width: '28px',
-            height: '28px',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'var(--bg-s1)',
-            border: 'none',
-            cursor: 'pointer',
-            color: 'var(--text-muted)',
-            touchAction: 'manipulation',
-            WebkitTapHighlightColor: 'transparent',
+            position: 'fixed',
+            top: pos.top,
+            right: pos.right,
+            zIndex: 9999,
+            width: 220,
+            borderRadius: 20,
+            background: 'var(--card-bg)',
+            border: '1px solid var(--card-border)',
+            boxShadow: '0 16px 48px rgba(0,0,0,0.28)',
+            padding: '12px',
+            backdropFilter: 'blur(20px)',
           }}
         >
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
-            stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-            <path d="M1 1l10 10M11 1L1 11"/>
-          </svg>
-        </button>
-
-        {/* Avatar */}
-        <div style={{
-          width: '64px',
-          height: '64px',
-          borderRadius: '16px',
-          flexShrink: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '26px',
-          fontWeight: '900',
-          background: user ? 'rgba(16,185,129,0.15)' : 'var(--bg-s1)',
-          color: user ? '#10B981' : 'var(--text-xmuted)',
-          border: user ? '2px solid rgba(16,185,129,0.3)' : '2px solid var(--card-border)',
-          marginBottom: '10px',
-        }}>
-          {user ? (user.email?.[0] ?? '?').toUpperCase() : (
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="8" r="4"/>
-              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-            </svg>
+          {user ? (
+            <>
+              {/* Email row */}
+              <div className="flex items-center gap-3 px-2 py-2 mb-2">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-base font-black"
+                  style={{ background: 'rgba(16,185,129,0.15)', color: '#10B981' }}>
+                  {(user.email?.[0] ?? '?').toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-h)' }}>
+                    {user.email}
+                  </p>
+                  <p className="text-[10px]" style={{ color: 'var(--text-xmuted)' }}>Аккаунт</p>
+                </div>
+              </div>
+              <div style={{ height: 1, background: 'var(--card-border)', margin: '0 4px 8px' }} />
+              <button
+                onClick={handleSignOut}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95"
+                style={{
+                  color: '#EF4444',
+                  background: 'rgba(239,68,68,0.06)',
+                  touchAction: 'manipulation',
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+                </svg>
+                Выйти
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="text-xs font-semibold px-2 mb-3" style={{ color: 'var(--text-muted)' }}>
+                Войди чтобы синхронизировать данные
+              </p>
+              <button
+                onClick={handleSignIn}
+                disabled={signingIn}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all active:scale-95 disabled:opacity-60"
+                style={{
+                  background: 'linear-gradient(135deg,#10B981,#059669)',
+                  color: 'white',
+                  boxShadow: '0 4px 16px rgba(16,185,129,0.3)',
+                  touchAction: 'manipulation',
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+              >
+                {signingIn
+                  ? <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                  : <GoogleIcon />}
+                {signingIn ? 'Перенаправление...' : 'Войти через Google'}
+              </button>
+            </>
           )}
         </div>
-
-        {/* Email / Гость */}
-        <p style={{
-          color: 'var(--text-h)',
-          fontWeight: '700',
-          fontSize: '14px',
-          marginBottom: '14px',
-          maxWidth: '100%',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-          flexShrink: 0,
-        }}>
-          {user ? user.email : 'Гость'}
-        </p>
-
-        {user ? (
-          /* Logged-in: red Выйти */
-          <button
-            onClick={handleSignOut}
-            style={{
-              width: '100%',
-              padding: '13px',
-              borderRadius: '14px',
-              background: 'transparent',
-              border: 'none',
-              color: '#EF4444',
-              fontSize: '15px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              touchAction: 'manipulation',
-              WebkitTapHighlightColor: 'transparent',
-              flexShrink: 0,
-            }}
-          >
-            Выйти
-          </button>
-        ) : (
-          <>
-            {/* Войти через Google — emerald */}
-            <button
-              onClick={handleSignIn}
-              disabled={loading}
-              style={{
-                width: '100%',
-                padding: '13px',
-                borderRadius: '14px',
-                background: 'linear-gradient(135deg,#10B981,#059669)',
-                color: 'white',
-                border: 'none',
-                fontSize: '14px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                marginBottom: '8px',
-                touchAction: 'manipulation',
-                WebkitTapHighlightColor: 'transparent',
-                opacity: loading ? 0.65 : 1,
-                flexShrink: 0,
-                boxShadow: '0 4px 16px rgba(16,185,129,0.35)',
-              }}
-            >
-              {loading
-                ? <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                : <GoogleIcon />}
-              {loading ? 'Перенаправление...' : 'Войти через Google'}
-            </button>
-
-            {/* Продолжить как гость */}
-            <button
-              onClick={onClose}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--text-xmuted)',
-                fontSize: '13px',
-                fontWeight: '500',
-                cursor: 'pointer',
-                padding: '4px 8px',
-                touchAction: 'manipulation',
-                WebkitTapHighlightColor: 'transparent',
-                flexShrink: 0,
-              }}
-            >
-              Продолжить как гость
-            </button>
-          </>
-        )}
-      </div>
-    </div>
+      )}
+    </>
   )
 }
 
@@ -491,8 +425,6 @@ export default function Home() {
 
   const { donePrayers, togglePrayer } = usePrayerLog()
 
-  const [sheetOpen, setSheetOpen] = useState(false)
-
   const now    = new Date()
   const nowM   = now.getHours() * 60 + now.getMinutes()
   const { text: greetText, icon: greetIcon } = greeting()
@@ -515,7 +447,7 @@ export default function Home() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <AccountButton onOpen={() => setSheetOpen(true)} />
+            <AccountDropdown />
             <ThemeToggle />
           </div>
         </div>
@@ -616,8 +548,6 @@ export default function Home() {
         )}
       </div>
 
-      {/* Account bottom sheet */}
-      <AccountSheet open={sheetOpen} onClose={() => setSheetOpen(false)} />
     </div>
   )
 }

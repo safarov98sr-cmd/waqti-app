@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useTheme }            from '../ThemeContext'
 import { useAuth }             from '../lib/AuthContext'
 import { usePrayerTimes }      from '../hooks/usePrayerTimes'
@@ -113,15 +114,15 @@ function AccountDropdown() {
         )}
       </button>
 
-      {/* Dropdown — fixed so it's not clipped by overflow:hidden parents */}
-      {open && (
+      {/* Dropdown — portalled to body so it's above all stacking contexts */}
+      {open && createPortal(
         <div
           ref={menuRef}
           style={{
             position: 'fixed',
             top: pos.top,
             right: pos.right,
-            zIndex: 9999,
+            zIndex: 99999,
             width: 220,
             borderRadius: 20,
             background: 'var(--card-bg)',
@@ -187,7 +188,8 @@ function AccountDropdown() {
               </button>
             </>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </>
   )

@@ -147,3 +147,6 @@ html[data-theme="dark"] {
   50%       { text-shadow: 0 0 20px rgba(245,158,11,0.7); }
 }
 .gold-glow { animation: gold-pulse 2s ease-in-out infinite; }
+
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }

@@ -242,7 +242,7 @@ export default function Tasks() {
           </div>
 
           {/* Prayer block chips */}
-          <div className="flex gap-1.5 px-4 pb-4 overflow-x-auto scroll-hidden">
+          <div className="flex gap-1.5 px-4 pb-4 overflow-x-auto scrollbar-hide">
             <button
               onClick={() => setPrayerBlock(null)}
               className="flex-shrink-0 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all"

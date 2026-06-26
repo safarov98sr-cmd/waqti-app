@@ -592,7 +592,16 @@ export default function Home() {
         </section>
 
         {/* Time blocks */}
-        {timeBlocks.length > 0 && !loading && (
+        {loading ? (
+          <section>
+            <div className="h-3 w-20 rounded-full mb-3 animate-pulse" style={{ background: 'var(--bg-s1)' }} />
+            <div className="space-y-2.5">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="h-[62px] rounded-2xl animate-pulse" style={{ background: 'var(--bg-s1)' }} />
+              ))}
+            </div>
+          </section>
+        ) : timeBlocks.length > 0 && (
           <section>
             <h2 className="text-xs font-bold uppercase tracking-wider mb-3"
               style={{ color: 'var(--text-xmuted)' }}>

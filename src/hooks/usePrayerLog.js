@@ -14,7 +14,8 @@ function lsWrite(date, done) {
 
 export function usePrayerLog(date = todayKey()) {
   const { user } = useAuth()
-  const [donePrayers, setDonePrayers] = useState({})
+  // Initialize from localStorage immediately — avoids 0/5 flash on first render
+  const [donePrayers, setDonePrayers] = useState(() => lsRead(date))
 
   // Load on mount / when auth changes
   useEffect(() => {

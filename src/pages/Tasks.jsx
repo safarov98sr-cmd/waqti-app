@@ -155,8 +155,9 @@ export default function Tasks() {
   const [input,       setInput]       = useState('')
   const [priority,    setPriority]    = useState('medium')
   const [prayerBlock, setPrayerBlock] = useState(null)
-  const [taskTime,    setTaskTime]    = useState('')
-  const [adding,      setAdding]      = useState(false)
+  const [taskTime,       setTaskTime]       = useState('')
+  const [showTimePicker, setShowTimePicker] = useState(false)
+  const [adding,         setAdding]         = useState(false)
   const inputRef = useRef(null)
 
   const now     = new Date()
@@ -168,6 +169,7 @@ export default function Tasks() {
     await addTask(input.trim(), priority, prayerBlock, taskTime || null)
     setInput('')
     setTaskTime('')
+    setShowTimePicker(false)
     setAdding(false)
     inputRef.current?.focus()
   }
@@ -235,28 +237,45 @@ export default function Tasks() {
           </div>
 
           {/* Time picker */}
-          <div className="flex items-center gap-2 px-4 pb-2">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-              stroke="var(--text-xmuted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
-            </svg>
-            <input
-              type="time"
-              value={taskTime}
-              onChange={e => setTaskTime(e.target.value)}
-              className="flex-1 text-xs outline-none bg-transparent"
-              style={{
-                color: taskTime ? 'var(--text-h)' : 'var(--text-xmuted)',
-                colorScheme: 'dark',
-              }}
-            />
-            {taskTime && (
+          <div className="px-4 pb-2">
+            {!showTimePicker ? (
               <button
-                onClick={() => setTaskTime('')}
-                className="text-xs px-1.5 py-0.5 rounded-lg"
-                style={{ color: 'var(--text-xmuted)', background: 'var(--bg-s1)' }}>
-                ✕
+                onClick={() => setShowTimePicker(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-95"
+                style={{
+                  border: '1.5px solid var(--card-border)',
+                  color: taskTime ? '#10B981' : 'var(--text-xmuted)',
+                  background: taskTime ? 'rgba(16,185,129,0.08)' : 'transparent',
+                  touchAction: 'manipulation',
+                  WebkitTapHighlightColor: 'transparent',
+                }}>
+                ⏰ {taskTime || 'Добавить время'}
               </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <input
+                  type="time"
+                  value={taskTime}
+                  onChange={e => setTaskTime(e.target.value)}
+                  autoFocus
+                  className="text-sm outline-none bg-transparent"
+                  style={{ color: 'var(--text-h)', colorScheme: 'dark' }}
+                />
+                <button
+                  onClick={() => { setTaskTime(''); setShowTimePicker(false) }}
+                  className="text-xs px-2 py-1 rounded-lg"
+                  style={{ color: 'var(--text-xmuted)', background: 'var(--bg-s1)' }}>
+                  Убрать
+                </button>
+                {taskTime && (
+                  <button
+                    onClick={() => setShowTimePicker(false)}
+                    className="text-xs px-2 py-1 rounded-lg font-semibold"
+                    style={{ color: '#10B981', background: 'rgba(16,185,129,0.1)' }}>
+                    ОК
+                  </button>
+                )}
+              </div>
             )}
           </div>
 

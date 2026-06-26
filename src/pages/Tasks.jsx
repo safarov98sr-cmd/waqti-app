@@ -53,7 +53,7 @@ function TaskCard({ task, onToggle, onMove, onDelete }) {
           )}
         </button>
 
-        {/* Title + block label */}
+        {/* Title + meta */}
         <div className="flex-1 min-w-0" onClick={() => setOpen(o => !o)}>
           <p className="text-sm font-medium truncate"
             style={{
@@ -62,10 +62,19 @@ function TaskCard({ task, onToggle, onMove, onDelete }) {
             }}>
             {task.title}
           </p>
-          {b && (
-            <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-xmuted)' }}>
-              {b.icon} {b.label}
-            </p>
+          {(b || task.time) && (
+            <div className="flex items-center gap-2 mt-0.5">
+              {task.time && (
+                <span className="text-[10px] font-semibold" style={{ color: '#10B981' }}>
+                  ⏰ {task.time}
+                </span>
+              )}
+              {b && (
+                <span className="text-[10px]" style={{ color: 'var(--text-xmuted)' }}>
+                  {b.icon} {b.label}
+                </span>
+              )}
+            </div>
           )}
         </div>
 
@@ -146,6 +155,7 @@ export default function Tasks() {
   const [input,       setInput]       = useState('')
   const [priority,    setPriority]    = useState('medium')
   const [prayerBlock, setPrayerBlock] = useState(null)
+  const [taskTime,    setTaskTime]    = useState('')
   const [adding,      setAdding]      = useState(false)
   const inputRef = useRef(null)
 
@@ -155,8 +165,9 @@ export default function Tasks() {
   const handleAdd = async () => {
     if (!input.trim()) return
     setAdding(true)
-    await addTask(input.trim(), priority, prayerBlock)
+    await addTask(input.trim(), priority, prayerBlock, taskTime || null)
     setInput('')
+    setTaskTime('')
     setAdding(false)
     inputRef.current?.focus()
   }
@@ -221,6 +232,32 @@ export default function Tasks() {
                 <path d="M8 3v10M3 8h10" stroke="white" strokeWidth="2" strokeLinecap="round"/>
               </svg>
             </button>
+          </div>
+
+          {/* Time picker */}
+          <div className="flex items-center gap-2 px-4 pb-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="var(--text-xmuted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+            </svg>
+            <input
+              type="time"
+              value={taskTime}
+              onChange={e => setTaskTime(e.target.value)}
+              className="flex-1 text-xs outline-none bg-transparent"
+              style={{
+                color: taskTime ? 'var(--text-h)' : 'var(--text-xmuted)',
+                colorScheme: 'dark',
+              }}
+            />
+            {taskTime && (
+              <button
+                onClick={() => setTaskTime('')}
+                className="text-xs px-1.5 py-0.5 rounded-lg"
+                style={{ color: 'var(--text-xmuted)', background: 'var(--bg-s1)' }}>
+                ✕
+              </button>
+            )}
           </div>
 
           {/* Priority chips */}

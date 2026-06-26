@@ -19,6 +19,7 @@ const normalize = (row, localMap = new Map()) => {
     done:        row.completed ?? row.done ?? false,
     priority:    row.priority    ?? local.priority    ?? 'medium',
     prayerBlock: row.prayerBlock ?? row.prayer_block  ?? local.prayerBlock ?? null,
+    time:        row.time        ?? local.time        ?? null,
   }
 }
 
@@ -30,6 +31,7 @@ const toRow = (task, userId) => ({
   title:      task.title,
   completed:  task.done ?? false,
   date:       task.date,
+  time:       task.time ?? null,
   created_at: task.created_at,
 })
 
@@ -101,7 +103,7 @@ export function useTasks(date = today()) {
   }, [date, user, deviceId])
 
   // Add
-  const addTask = useCallback(async (title, priority = 'medium', prayerBlock = null) => {
+  const addTask = useCallback(async (title, priority = 'medium', prayerBlock = null, time = null) => {
     if (!title.trim()) return
     const task = {
       id:          crypto.randomUUID(),
@@ -110,6 +112,7 @@ export function useTasks(date = today()) {
       title:       title.trim(),
       priority,
       prayerBlock,
+      time:        time || null,
       done:        false,
       date,
       created_at:  new Date().toISOString(),

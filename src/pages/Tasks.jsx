@@ -17,6 +17,22 @@ const PRAYER_BLOCKS = [
 
 const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 }
 
+const MONTHS_SHORT = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек']
+const WEEKDAYS     = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб']
+const fmtDate      = (d) => d.toISOString().split('T')[0]
+const todayStr     = () => fmtDate(new Date())
+const shiftDate    = (base, days) => {
+  const d = new Date(base); d.setDate(d.getDate() + days); return fmtDate(d)
+}
+const labelForDate = (dateStr) => {
+  const t = todayStr()
+  if (dateStr === t)                return 'Сегодня'
+  if (dateStr === shiftDate(t, 1))  return 'Завтра'
+  if (dateStr === shiftDate(t, -1)) return 'Вчера'
+  const d = new Date(dateStr)
+  return `${WEEKDAYS[d.getDay()]}, ${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`
+}
+
 function pMeta(id) { return PRIORITIES.find(p => p.id === id) ?? PRIORITIES[1] }
 function bMeta(id) { return PRAYER_BLOCKS.find(b => b.id === id) ?? null }
 
@@ -151,7 +167,8 @@ function BlockSection({ block, tasks, onToggle, onMove, onDelete }) {
 
 /* ── Main screen ── */
 export default function Tasks() {
-  const { tasks, loading, addTask, toggleDone, moveToTomorrow, deleteTask, stats } = useTasks()
+  const [viewDate, setViewDate] = useState(todayStr())
+  const { tasks, loading, addTask, toggleDone, moveToTomorrow, deleteTask, stats } = useTasks(viewDate)
   const [input,       setInput]       = useState('')
   const [priority,    setPriority]    = useState('medium')
   const [prayerBlock, setPrayerBlock] = useState(null)
@@ -160,8 +177,7 @@ export default function Tasks() {
   const [adding,         setAdding]         = useState(false)
   const inputRef = useRef(null)
 
-  const now     = new Date()
-  const dateStr = `${now.getDate()} ${['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'][now.getMonth()]}`
+  const isToday = viewDate === todayStr()
 
   const handleAdd = async () => {
     if (!input.trim()) return
@@ -194,19 +210,41 @@ export default function Tasks() {
       <div className="relative overflow-hidden pt-12 pb-8 px-5"
         style={{ background: 'linear-gradient(160deg, var(--header-from) 0%, var(--header-to) 100%)' }}>
         <IslamicPattern />
-        <div className="relative z-10 flex items-end justify-between">
-          <div>
-            <p className="text-xs font-medium mb-0.5" style={{ color: 'rgba(255,255,255,0.55)' }}>
-              {dateStr}
-            </p>
+        <div className="relative z-10">
+          <div className="flex items-center justify-between mb-1">
             <h1 className="text-2xl font-black text-white">Планировщик</h1>
+            {tasks.length > 0 && (
+              <span className="text-sm font-bold px-3 py-1.5 rounded-full"
+                style={{ background: 'rgba(255,255,255,0.15)', color: 'white' }}>
+                {stats.done}/{stats.total} · {stats.pct}%
+              </span>
+            )}
           </div>
-          {tasks.length > 0 && (
-            <span className="text-sm font-bold px-3 py-1.5 rounded-full mb-0.5"
+          {/* Date navigation */}
+          <div className="flex items-center gap-2 mt-1">
+            <button
+              onClick={() => setViewDate(d => shiftDate(d, -1))}
+              className="w-7 h-7 rounded-xl flex items-center justify-center transition-all active:scale-90"
               style={{ background: 'rgba(255,255,255,0.15)', color: 'white' }}>
-              {stats.done}/{stats.total} · {stats.pct}%
-            </span>
-          )}
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M9 11L5 7l4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            <button
+              onClick={() => setViewDate(todayStr())}
+              className="text-sm font-semibold px-3 py-1 rounded-xl transition-all active:scale-95"
+              style={{ color: 'white', background: isToday ? 'rgba(255,255,255,0.2)' : 'transparent' }}>
+              {labelForDate(viewDate)}
+            </button>
+            <button
+              onClick={() => setViewDate(d => shiftDate(d, 1))}
+              className="w-7 h-7 rounded-xl flex items-center justify-center transition-all active:scale-90"
+              style={{ background: 'rgba(255,255,255,0.15)', color: 'white' }}>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M5 3l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 

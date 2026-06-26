@@ -449,6 +449,28 @@ export default function Home() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={async () => {
+                if ('serviceWorker' in navigator) {
+                  const regs = await navigator.serviceWorker.getRegistrations()
+                  for (const reg of regs) await reg.unregister()
+                }
+                window.location.reload(true)
+              }}
+              aria-label="Обновить приложение"
+              className="w-10 h-10 rounded-2xl flex items-center justify-center transition-all active:scale-90"
+              style={{
+                background: 'rgba(255,255,255,0.15)',
+                backdropFilter: 'blur(8px)',
+                touchAction: 'manipulation',
+                WebkitTapHighlightColor: 'transparent',
+              }}
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+                stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 2v6h-6M3 12a9 9 0 0115-6.7L21 8M3 22v-6h6M21 12a9 9 0 01-15 6.7L3 16"/>
+              </svg>
+            </button>
             <AccountDropdown />
             <ThemeToggle />
           </div>

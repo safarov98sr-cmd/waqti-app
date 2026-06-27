@@ -4,7 +4,7 @@ import { useTheme }            from '../ThemeContext'
 import { useAuth }             from '../lib/AuthContext'
 import { usePrayerTimes }      from '../hooks/usePrayerTimes'
 import { usePrayerLog }              from '../hooks/usePrayerLog'
-import { usePrayerNotifications }   from '../hooks/usePrayerNotifications'
+import { usePushNotifications }      from '../hooks/usePushNotifications'
 import IslamicPattern               from '../components/IslamicPattern'
 
 const WEEKDAYS = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб']
@@ -427,7 +427,7 @@ export default function Home() {
   } = usePrayerTimes()
 
   const { donePrayers, togglePrayer } = usePrayerLog()
-  const { permission, requestPermission } = usePrayerNotifications(prayers)
+  const { permission, subscribe } = usePushNotifications(prayers)
 
   const now    = new Date()
   const nowM   = now.getHours() * 60 + now.getMinutes()
@@ -500,7 +500,7 @@ export default function Home() {
             {/* Notification opt-in — shown only while permission not yet decided */}
             {permission === 'default' && (
               <button
-                onClick={requestPermission}
+                onClick={subscribe}
                 className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-all active:scale-95"
                 style={{
                   background: 'rgba(255,255,255,0.18)',

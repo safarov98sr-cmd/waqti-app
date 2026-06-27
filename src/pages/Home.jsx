@@ -3,8 +3,9 @@ import { createPortal } from 'react-dom'
 import { useTheme }            from '../ThemeContext'
 import { useAuth }             from '../lib/AuthContext'
 import { usePrayerTimes }      from '../hooks/usePrayerTimes'
-import { usePrayerLog }        from '../hooks/usePrayerLog'
-import IslamicPattern          from '../components/IslamicPattern'
+import { usePrayerLog }              from '../hooks/usePrayerLog'
+import { usePrayerNotifications }   from '../hooks/usePrayerNotifications'
+import IslamicPattern               from '../components/IslamicPattern'
 
 const WEEKDAYS = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб']
 const MONTHS   = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек']
@@ -426,6 +427,7 @@ export default function Home() {
   } = usePrayerTimes()
 
   const { donePrayers, togglePrayer } = usePrayerLog()
+  const { permission, requestPermission } = usePrayerNotifications(prayers)
 
   const now    = new Date()
   const nowM   = now.getHours() * 60 + now.getMinutes()
@@ -493,6 +495,32 @@ export default function Home() {
             {locError && (
               <span className="bg-white/10 text-white/60 text-xs px-3 py-1.5 rounded-full">
                 📍 {locError}
+              </span>
+            )}
+            {/* Notification opt-in — shown only while permission not yet decided */}
+            {permission === 'default' && (
+              <button
+                onClick={requestPermission}
+                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-all active:scale-95"
+                style={{
+                  background: 'rgba(255,255,255,0.18)',
+                  color: 'white',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  touchAction: 'manipulation',
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/>
+                </svg>
+                Напоминания о намазах
+              </button>
+            )}
+            {permission === 'granted' && (
+              <span className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full"
+                style={{ background: 'rgba(16,185,129,0.25)', color: '#6EE7B7' }}>
+                🔔 Уведомления вкл.
               </span>
             )}
             <InstallButton />

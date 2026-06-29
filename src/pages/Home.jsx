@@ -598,6 +598,79 @@ export default function Home() {
             </div>
           </section>
         )}
+
+        {/* ── Sleep schedule ── */}
+        {!loading && (() => {
+          const fajr = prayers.find(p => p.key === 'Fajr')
+          if (!fajr) return null
+          const fajrMins = fajr.mins
+          const toTime = (m) => {
+            const wrapped = ((m % 1440) + 1440) % 1440
+            return `${String(Math.floor(wrapped / 60)).padStart(2, '0')}:${String(wrapped % 60).padStart(2, '0')}`
+          }
+          const optimal = toTime(fajrMins - 9 * 60)    // 6 циклов × 90 мин
+          const minimum = toTime(fajrMins - 7.5 * 60)  // 5 циклов × 90 мин
+          return (
+            <section>
+              <h2 className="text-xs font-bold uppercase tracking-wider mb-3"
+                style={{ color: 'var(--text-xmuted)' }}>
+                Режим сна
+              </h2>
+              <div className="rounded-3xl overflow-hidden"
+                style={{ background: 'var(--card-bg)', border: '1.5px solid var(--card-border)' }}>
+                {/* Header row */}
+                <div className="flex items-center gap-3 px-4 pt-4 pb-3"
+                  style={{ borderBottom: '1px solid var(--card-border)' }}>
+                  <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: 'rgba(99,102,241,0.12)', fontSize: 20 }}>
+                    😴
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold" style={{ color: 'var(--text-h)' }}>
+                      Оптимальный сон
+                    </p>
+                    <p className="text-xs" style={{ color: 'var(--text-xmuted)' }}>
+                      Фаджр в {fajr.time} · циклы по 90 мин
+                    </p>
+                  </div>
+                </div>
+                {/* Options */}
+                <div className="divide-y" style={{ '--tw-divide-opacity': 1 }}>
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <div>
+                      <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
+                        6 циклов · 9 часов
+                      </p>
+                      <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-xmuted)' }}>
+                        Идеально — просыпаться бодрым
+                      </p>
+                    </div>
+                    <span className="text-lg font-black tabular-nums"
+                      style={{ color: '#818CF8' }}>
+                      {optimal}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between px-4 py-3"
+                    style={{ borderTop: '1px solid var(--card-border)' }}>
+                    <div>
+                      <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
+                        5 циклов · 7.5 часов
+                      </p>
+                      <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-xmuted)' }}>
+                        Минимум для восстановления
+                      </p>
+                    </div>
+                    <span className="text-lg font-black tabular-nums"
+                      style={{ color: '#A5B4FC' }}>
+                      {minimum}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )
+        })()}
+
       </div>
 
     </div>

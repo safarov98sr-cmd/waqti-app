@@ -602,14 +602,25 @@ export default function Home() {
         {/* ── Sleep schedule ── */}
         {!loading && (() => {
           const fajr = prayers.find(p => p.key === 'Fajr')
-          if (!fajr) return null
-          const fajrMins = fajr.mins
+          const isha = prayers.find(p => p.key === 'Isha')
+          if (!fajr || !isha) return null
+
           const toTime = (m) => {
-            const wrapped = ((m % 1440) + 1440) % 1440
-            return `${String(Math.floor(wrapped / 60)).padStart(2, '0')}:${String(wrapped % 60).padStart(2, '0')}`
+            const w = ((m % 1440) + 1440) % 1440
+            return `${String(Math.floor(w / 60)).padStart(2, '0')}:${String(w % 60).padStart(2, '0')}`
           }
-          const optimal = toTime(fajrMins - 9 * 60)    // 6 циклов × 90 мин
-          const minimum = toTime(fajrMins - 7.5 * 60)  // 5 циклов × 90 мин
+
+          const bedMins  = isha.mins + 15           // лечь через 15 мин после Иша
+          const bedTime  = toTime(bedMins)
+
+          // Sleep duration: from bedtime to Fajr (crosses midnight)
+          let sleepMins = fajr.mins - bedMins
+          if (sleepMins < 0) sleepMins += 1440
+          const sleepH   = Math.floor(sleepMins / 60)
+          const sleepM   = sleepMins % 60
+          const sleepStr = sleepM > 0 ? `${sleepH} ч ${sleepM} мин` : `${sleepH} ч`
+          const tooShort = sleepMins < 6 * 60
+
           return (
             <section>
               <h2 className="text-xs font-bold uppercase tracking-wider mb-3"
@@ -617,55 +628,73 @@ export default function Home() {
                 Режим сна
               </h2>
               <div className="rounded-3xl overflow-hidden"
-                style={{ background: 'var(--card-bg)', border: '1.5px solid var(--card-border)' }}>
-                {/* Header row */}
+                style={{ background: 'var(--card-bg)', border: `1.5px solid ${tooShort ? 'rgba(245,158,11,0.35)' : 'var(--card-border)'}` }}>
+
+                {/* Header */}
                 <div className="flex items-center gap-3 px-4 pt-4 pb-3"
                   style={{ borderBottom: '1px solid var(--card-border)' }}>
-                  <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: 'rgba(99,102,241,0.12)', fontSize: 20 }}>
-                    😴
+                  <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 text-xl"
+                    style={{ background: tooShort ? 'rgba(245,158,11,0.12)' : 'rgba(99,102,241,0.12)' }}>
+                    {tooShort ? '⚠️' : '😴'}
                   </div>
                   <div>
                     <p className="text-sm font-bold" style={{ color: 'var(--text-h)' }}>
                       Оптимальный сон
                     </p>
                     <p className="text-xs" style={{ color: 'var(--text-xmuted)' }}>
-                      Фаджр в {fajr.time} · циклы по 90 мин
+                      Иша {isha.time} · Фаджр {fajr.time}
                     </p>
                   </div>
                 </div>
-                {/* Options */}
-                <div className="divide-y" style={{ '--tw-divide-opacity': 1 }}>
-                  <div className="flex items-center justify-between px-4 py-3">
-                    <div>
-                      <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
-                        6 циклов · 9 часов
-                      </p>
-                      <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-xmuted)' }}>
-                        Идеально — просыпаться бодрым
-                      </p>
-                    </div>
-                    <span className="text-lg font-black tabular-nums"
-                      style={{ color: '#818CF8' }}>
-                      {optimal}
-                    </span>
+
+                {/* Bedtime row */}
+                <div className="flex items-center justify-between px-4 py-3"
+                  style={{ borderBottom: '1px solid var(--card-border)' }}>
+                  <div>
+                    <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
+                      Ложись спать
+                    </p>
+                    <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-xmuted)' }}>
+                      Через 15 мин после Иша
+                    </p>
                   </div>
-                  <div className="flex items-center justify-between px-4 py-3"
-                    style={{ borderTop: '1px solid var(--card-border)' }}>
-                    <div>
-                      <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
-                        5 циклов · 7.5 часов
-                      </p>
-                      <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-xmuted)' }}>
-                        Минимум для восстановления
-                      </p>
-                    </div>
-                    <span className="text-lg font-black tabular-nums"
-                      style={{ color: '#A5B4FC' }}>
-                      {minimum}
-                    </span>
-                  </div>
+                  <span className="text-xl font-black tabular-nums"
+                    style={{ color: '#818CF8' }}>
+                    {bedTime}
+                  </span>
                 </div>
+
+                {/* Sleep duration row */}
+                <div className="flex items-center justify-between px-4 py-3"
+                  style={tooShort ? { borderBottom: '1px solid var(--card-border)' } : {}}>
+                  <div>
+                    <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
+                      Время сна до Фаджра
+                    </p>
+                    <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-xmuted)' }}>
+                      {tooShort ? 'Меньше нормы' : 'Достаточно для восстановления'}
+                    </p>
+                  </div>
+                  <span className="text-base font-black tabular-nums"
+                    style={{ color: tooShort ? '#F59E0B' : '#10B981' }}>
+                    {sleepStr}
+                  </span>
+                </div>
+
+                {/* Warning */}
+                {tooShort && (
+                  <div className="flex items-start gap-2.5 px-4 py-3"
+                    style={{ background: 'rgba(245,158,11,0.07)' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="flex-shrink-0 mt-0.5"
+                      stroke="#F59E0B" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                      <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    <p className="text-xs leading-relaxed" style={{ color: '#F59E0B' }}>
+                      Мало времени для сна — восполни отдых после Зухра
+                    </p>
+                  </div>
+                )}
               </div>
             </section>
           )

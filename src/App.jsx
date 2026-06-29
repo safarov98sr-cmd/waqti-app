@@ -7,6 +7,7 @@ import Home     from './pages/Home'
 import Tasks    from './pages/Tasks'
 import Progress from './pages/Progress'
 import Coach    from './pages/Coach'
+import Settings from './pages/Settings'
 import BottomNav from './components/BottomNav'
 
 const SKIP_KEY = 'waqti-auth-skipped'
@@ -40,6 +41,7 @@ function AppInner() {
   const [page,            setPage]            = useState('home')
   const [showAuth,        setShowAuth]        = useState(false)
   const [updateAvailable, setUpdateAvailable] = useState(false)
+  const [showSettings,    setShowSettings]    = useState(false)
 
   const skipped   = typeof localStorage !== 'undefined' && localStorage.getItem(SKIP_KEY) === 'true'
   const needsAuth = !!supabase && !loading && !user && !skipped
@@ -67,6 +69,13 @@ function AppInner() {
     return () => window.removeEventListener('waqti:show-auth', show)
   }, [])
 
+  // Listen for in-app navigation events (e.g. from AccountDropdown)
+  useEffect(() => {
+    const nav = (e) => { if (e.detail === 'settings') setShowSettings(true) }
+    window.addEventListener('waqti:navigate', nav)
+    return () => window.removeEventListener('waqti:navigate', nav)
+  }, [])
+
   // Hide auth screen once user logs in
   useEffect(() => { if (user) setShowAuth(false) }, [user])
 
@@ -87,9 +96,12 @@ function AppInner() {
     <div className="flex items-center justify-center min-h-screen" style={{ background: 'var(--outer-bg)' }}>
       <div className="relative w-full max-w-[430px] h-screen overflow-hidden flex flex-col">
         <div className="flex-1 overflow-y-auto scroll-hidden" style={{ background: 'var(--bg-page)' }}>
-          <Page key={page} />
+          {showSettings
+            ? <Settings onBack={() => setShowSettings(false)} />
+            : <Page key={page} />
+          }
         </div>
-        <BottomNav active={page} onChange={setPage} />
+        {!showSettings && <BottomNav active={page} onChange={setPage} />}
       </div>
 
       {/* Update banner */}

@@ -20,19 +20,32 @@ export function useProfile() {
 
     if (!user || !supabase) { setLoading(false); return }
 
-    supabase
-      .from('profiles')
-      .select('topics, content_language')
-      .eq('id', user.id)
-      .single()
-      .then(({ data }) => {
-        if (data) {
-          setTopics(data.topics ?? [])
-          setLanguage(data.content_language ?? 'ru')
-          lsSave({ topics: data.topics ?? [], content_language: data.content_language ?? 'ru' })
-        }
-        setLoading(false)
-      })
+    const loadProfile = async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('topics, content_language')
+        .eq('id', user.id)
+        .single()
+
+      if (error || !data) {
+        // 406 / PGRST116 = row not found — create default profile
+        await supabase.from('profiles').insert({
+          id: user.id,
+          topics: [],
+          content_language: 'ru',
+        })
+        setTopics([])
+        setLanguage('ru')
+        lsSave({ topics: [], content_language: 'ru' })
+      } else {
+        setTopics(data.topics ?? [])
+        setLanguage(data.content_language ?? 'ru')
+        lsSave({ topics: data.topics ?? [], content_language: data.content_language ?? 'ru' })
+      }
+      setLoading(false)
+    }
+
+    loadProfile()
   }, [user])
 
   const save = async (newTopics, newLang) => {

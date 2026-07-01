@@ -42,7 +42,7 @@ const TABS = [
   },
   {
     id: 'coach',
-    label: 'ИИ-коуч',
+    label: 'Коуч',
     icon: (active) => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
         <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"
@@ -53,6 +53,21 @@ const TABS = [
         <circle cx="9"  cy="10" r="1" fill={active ? '#10B981' : 'var(--text-xmuted)'} />
         <circle cx="12" cy="10" r="1" fill={active ? '#10B981' : 'var(--text-xmuted)'} />
         <circle cx="15" cy="10" r="1" fill={active ? '#10B981' : 'var(--text-xmuted)'} />
+      </svg>
+    ),
+  },
+  {
+    id: 'materials',
+    label: 'Материалы',
+    icon: (active) => (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <path d="M4 19.5A2.5 2.5 0 016.5 17H20"
+          stroke={active ? '#10B981' : 'var(--text-xmuted)'} strokeWidth="1.9" strokeLinecap="round"/>
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"
+          stroke={active ? '#10B981' : 'var(--text-xmuted)'} strokeWidth="1.9"
+          fill={active ? 'rgba(16,185,129,0.12)' : 'none'} strokeLinejoin="round"/>
+        <path d="M8 7h8M8 11h6"
+          stroke={active ? '#10B981' : 'var(--text-xmuted)'} strokeWidth="1.9" strokeLinecap="round"/>
       </svg>
     ),
   },
@@ -81,7 +96,7 @@ export default function BottomNav({ active, onChange }) {
               className="flex-1 flex flex-col items-center justify-center gap-1 transition-all duration-200 active:scale-90"
             >
               {tab.icon(isActive)}
-              <span className="text-[10px] font-semibold transition-colors"
+              <span className="text-[9px] font-semibold transition-colors"
                 style={{ color: isActive ? '#10B981' : 'var(--text-xmuted)' }}>
                 {tab.label}
               </span>

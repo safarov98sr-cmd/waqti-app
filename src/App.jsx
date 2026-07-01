@@ -7,12 +7,13 @@ import Home     from './pages/Home'
 import Tasks    from './pages/Tasks'
 import Progress from './pages/Progress'
 import Coach    from './pages/Coach'
-import Settings from './pages/Settings'
-import BottomNav from './components/BottomNav'
+import Settings   from './pages/Settings'
+import Materials  from './pages/Materials'
+import BottomNav  from './components/BottomNav'
 
 const SKIP_KEY = 'waqti-auth-skipped'
 
-const PAGES = { home: Home, tasks: Tasks, progress: Progress, coach: Coach }
+const PAGES = { home: Home, tasks: Tasks, progress: Progress, coach: Coach, materials: Materials }
 
 async function handleUpdate() {
   if ('serviceWorker' in navigator) {
